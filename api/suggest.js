@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     return await _suggestHandler(req, res);
   } catch (err) {
     console.error('[suggest] Fatal unhandled error:', err?.message || err);
-    return res.status(500).json({ error: 'Internal server error', meals: [] });
+    return res.status(200).json({ ok: false, meals: [], error: 'Internal server error' });
   }
 }
 
@@ -270,17 +270,28 @@ JSON only — ${maxCount} objects:
   if (!req.body?.ingredients?.length) return res.status(400).json({ error: 'ingredients array is required.' });
 
   try {
+    const safeBody2 = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
     const {
-      ingredients, time, diet, cuisine,
-      mealType = 'any',        // breakfast | lunch | dinner | snack | any
-      defaultServings = 2,     // used in recipe scaling hint
+      ingredients: _ingredients,
+      time         = '30 min',
+      diet         = 'any',
+      cuisine      = 'any',
+      mealType     = 'any',
+      defaultServings = 2,
       tasteProfile,
-      language = 'en',
-      units = 'metric',
-      count = 5,               // number of meals to return (free tier sends 1)
-    } = req.body;
+      language     = 'en',
+      units        = 'metric',
+      count        = 5,
+      lastCooked   = null,
+      likedMealNames = [],
+    } = safeBody2;
 
-    if (!ingredients?.length) return res.status(400).json({ error: 'Please provide at least one ingredient.' });
+    // Sanitize ingredients — must be non-empty strings
+    const safeIngredients = Array.isArray(_ingredients)
+      ? _ingredients.filter(i => typeof i === 'string' && i.trim().length > 0)
+      : [];
+
+    if (!safeIngredients.length) return res.status(400).json({ error: 'Please provide at least one ingredient.' });
 
     const dietLabel    = (!diet || diet === 'none') ? 'no dietary restrictions' : diet;
 
@@ -413,8 +424,7 @@ Rules: use given ingredients as base; mark pantry staples with *; keep steps con
 
     return res.status(200).json({ meals });
   } catch (err) {
-    console.error('Handler error:', err);
-    const errMsg = err?.message || String(err) || 'Internal server error.';
-    return res.status(500).json({ error: errMsg, stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined });
+    console.error('[suggest/internal] Error:', err?.message || err);
+    return res.status(200).json({ ok: false, meals: [], error: err?.message || 'Internal server error' });
   }
 }
