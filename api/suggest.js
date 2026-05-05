@@ -120,7 +120,7 @@ async function _suggestHandler(req, res) {
     // ── Kids mode prompt override — checked BEFORE ingredients requirement ──
     if (kidsMode && kidsPromptOverride) {
       const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+      if (!apiKey) return res.status(200).json({ ok: false, meals: [], error: 'Service not configured' });
       const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
@@ -131,7 +131,7 @@ async function _suggestHandler(req, res) {
       const raw = (aiData.content||[]).map(c=>c.text||'').join('');
       const m = raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
       if (m) { try { const parsed=JSON.parse(m[0]); return res.status(200).json(parsed); } catch {} }
-      return res.status(500).json({ error:'Failed to parse kids recipe response' });
+      return res.status(200).json({ ok: false, meals: [], error: 'Could not parse response' });
     }
 
     const dietLabel    = (!diet    || diet    === 'none') ? 'no dietary restrictions' : diet;
@@ -159,7 +159,7 @@ JSON only — ${maxCount} objects:
       const match = data.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
       const meals = match ? JSON.parse(match[0]) : null;
       return res.status(200).json({ meals, meta: { count: meals?.length||0, language, cuisine: cuisine||'any', generated: new Date().toISOString(), tier: validation.record?.tier||'free', remaining: validation.remaining } });
-    } catch { return res.status(500).json({ error: 'Internal server error.' }); }
+    } catch (e) { console.error('[suggest/v1]', e?.message); return res.status(200).json({ ok: false, meals: [], error: 'Internal server error' }); }
   }
 
   // ── Ingredient translation (?action=translate) ────────────────
@@ -167,7 +167,7 @@ JSON only — ${maxCount} objects:
     const { term, lang = 'en' } = req.body;
     if (!term?.trim()) return res.status(400).json({ error: 'term required' });
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+    if (!apiKey) return res.status(200).json({ ok: false, meals: [], error: 'Service not configured' });
     const langHints = { ta:'Tamil', hi:'Hindi', te:'Telugu', kn:'Kannada', ml:'Malayalam' };
     const langHint = langHints[lang] ? ` The user may be using ${langHints[lang]} names.` : '';
     const prompt = `You are an expert in Indian culinary ingredients and regional names.\nUser typed: "${term.trim()}"${langHint}\n\nIdentify this ingredient. Respond ONLY with JSON (no markdown):\n{"found":true,"english":"spinach","local_name":"ponangani keerai (Tamil)","also_known_as":["water amaranth"],"emoji":"🥬","tip":"Rich in iron, great for stir-fries"}\n\nIf unknown: {"found":false,"message":"Could not identify this ingredient"}\nThe "english" field must be the common English grocery store name.`;
@@ -182,7 +182,7 @@ JSON only — ${maxCount} objects:
       const m = raw.replace(/```json|```/g, '').trim().match(/\{[\s\S]*\}/);
       if (!m) return res.status(200).json({ found: false, message: 'Could not identify ingredient' });
       return res.status(200).json(JSON.parse(m[0]));
-    } catch { return res.status(500).json({ found: false, message: 'Translation service error' }); }
+    } catch (e) { return res.status(200).json({ found: false, message: 'Translation service error' }); }
   }
 
 
@@ -214,10 +214,10 @@ JSON only — ${maxCount} objects:
         const cleaned = raw.replace(/```json|```/g,'').trim();
         const m = cleaned.match(/\[[\s\S]*\]/);
         if (m) ingredients = JSON.parse(m[0]);
-      } catch { return res.status(500).json({ error: 'Could not parse ingredient list.' }); }
+      } catch (e) { return res.status(200).json({ ingredients: [], count: 0, error: 'Parse error' }); }
       const normalised = [...new Set(ingredients.filter(i=>typeof i==='string'&&i.trim()).map(i=>i.toLowerCase().trim()).slice(0,20))];
       return res.status(200).json({ ingredients: normalised, count: normalised.length });
-    } catch(err) { return res.status(500).json({ error: 'Internal server error.' }); }
+    } catch (err) { return res.status(200).json({ ingredients: [], count: 0, error: 'Internal error' }); }
   }
 
   // ── Internal app path (existing logic below) ────────────────────
@@ -234,7 +234,7 @@ JSON only — ${maxCount} objects:
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured.' });
+  if (!apiKey) return res.status(200).json({ ok: false, meals: [], error: 'Service not configured' });
 
   // ── Kids mode — handled FIRST before ingredients check ────────────
   const { kidsMode, kidsPromptOverride } = req.body || {};
@@ -247,7 +247,7 @@ JSON only — ${maxCount} objects:
           messages: [{ role: 'user', content: kidsPromptOverride }] }),
       });
       const aiData = await aiRes.json();
-      if (!aiRes.ok) return res.status(500).json({ error: 'AI service error for kids recipes.' });
+      if (!aiRes.ok) return res.status(200).json({ ok: false, meals: [], error: 'AI service error' });
       const raw = (aiData.content || []).map(c => c.text || '').join('');
       const clean = raw.replace(/```json|```/g, '').trim();
       // Try object first {meals:[]}, then flat array []
@@ -259,10 +259,10 @@ JSON only — ${maxCount} objects:
       if (arrMatch) {
         try { const meals = JSON.parse(arrMatch[0]); return res.status(200).json({ meals }); } catch {}
       }
-      return res.status(500).json({ error: 'Failed to parse kids recipe response. Please try again.' });
+      return res.status(200).json({ ok: false, meals: [], error: 'Could not parse response' });
     } catch (err) {
       console.error('Kids mode error:', err);
-      return res.status(500).json({ error: 'Kids recipe generation failed.' });
+      return res.status(200).json({ ok: false, meals: [], error: 'Kids recipe generation failed' });
     }
   }
 
@@ -409,7 +409,7 @@ Rules: use given ingredients as base; mark pantry staples with *; keep steps con
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       const match = cleaned.match(/\[[\s\S]*\]/);
       if (match) meals = JSON.parse(match[0]);
-    } catch { return res.status(500).json({ error: 'Could not parse meal suggestions.' }); }
+    } catch (e) { console.error('[suggest/parse]', e?.message); return res.status(200).json({ ok: false, meals: [], error: 'Could not parse suggestions' }); }
 
     // Log token usage (async, fire-and-forget)
     const usage = data.usage || {};
