@@ -548,6 +548,15 @@ export function JourneyTiles({
     onGenerateDirect && onGenerateDirect({ mood: mood?.id, moodContext });
   };
 
+  // Prevent first-render flicker: don't render journey grid until cards are ready
+  if (!cards) return (
+    <div style={{ maxWidth:680, margin:'0 auto', padding:'14px 16px 80px', fontFamily:"'DM Sans',sans-serif", minHeight:200 }}>
+      <div style={{ height:24, width:160, background:'rgba(28,10,0,0.06)', borderRadius:8, marginBottom:12 }} />
+      <div style={{ height:120, background:'rgba(28,10,0,0.04)', borderRadius:16, marginBottom:10 }} />
+      <div style={{ height:56, background:'rgba(28,10,0,0.04)', borderRadius:12 }} />
+    </div>
+  );
+
   return (
     <div style={{ maxWidth:680, margin:'0 auto', padding:'14px 16px 80px', fontFamily:"'DM Sans',sans-serif" }}>
 

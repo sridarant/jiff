@@ -197,7 +197,7 @@ JSON only — ${maxCount} objects:
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01' },
+        headers: { 'Content-Type':'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6', max_tokens: 500,
           messages: [{ role:'user', content: [
@@ -292,10 +292,12 @@ JSON only — ${maxCount} objects:
       : [];
 
     // Check: do we have enough context to generate (ingredients OR cuisine/mealType/profile)?
+    // NOTE: tasteProfile (not tp) used here because tp is declared later
+    const _tp = (tasteProfile && typeof tasteProfile === 'object') ? tasteProfile : {};
     const hasContext = safeIngredients.length > 0
       || (cuisine && cuisine !== 'any')
       || (mealType && mealType !== 'any')
-      || (tp && (tp.preferred_cuisines?.length || tp.spice_level))
+      || (_tp.preferred_cuisines?.length > 0 || Boolean(_tp.spice_level))
       || (diet && diet !== 'any' && diet !== 'none');
 
     if (!hasContext) {
@@ -410,7 +412,7 @@ ${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantr
     const rawBody = await response.text();
     let data;
     try { data = JSON.parse(rawBody); } catch { data = {}; }
-    if (!response.ok) return res.status(response.status).json({ error: data.error?.message || 'AI service error.', status: response.status });
+    if (!response.ok) return res.status(200).json({ ok: false, meals: [], error: data.error?.message || 'AI service error' });
 
     const rawText = data.content?.map(c => c.text || '').join('') || '';
     let meals = null;
@@ -431,7 +433,7 @@ ${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantr
       sbKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     });
 
-    return res.status(200).json({ meals });
+    return res.status(200).json({ ok: true, meals: meals || [] });
   } catch (err) {
     console.error('[suggest/internal] Error:', err?.message || err);
     return res.status(200).json({ ok: false, meals: [], error: err?.message || 'Internal server error' });
