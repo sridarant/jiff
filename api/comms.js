@@ -1,6 +1,6 @@
 // api/comms.js — Feedback + Email subscribe + Welcome/drip triggers
 // Route by ?action=feedback | email | welcome | trial_nudge | premium_confirm
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 // ── Email templates (sent via Mailchimp Transactional or Automations) ────────
 // These are NOT sent directly — they define the TAG that triggers
@@ -62,7 +62,7 @@ async function addToMailchimp(email, tags, mergeFields = {}) {
   return { ok: true };
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const action = req.query.action || req.body?.action;

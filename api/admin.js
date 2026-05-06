@@ -11,7 +11,7 @@ const safeJson = async (r) => { try { const d = await r.json(); return Array.isA
 const ok200    = (res, data) => res.status(200).json({ ok: true,  ...data });
 const fail200  = (res, msg)  => res.status(200).json({ ok: false, error: msg || 'Handled safely' });
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // ── Global safety wrapper — admin MUST NEVER return 500 ──────
   try {
     return await _handler(req, res);

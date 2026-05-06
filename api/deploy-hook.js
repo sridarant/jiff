@@ -3,7 +3,7 @@
 // Create hook → copy URL → paste in Vercel's "Notify on Deploy" field
 // Or use Vercel's Integrations → Webhook → select "deployment.succeeded" event
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Accept POST from Vercel webhook
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

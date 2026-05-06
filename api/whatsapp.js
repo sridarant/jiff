@@ -2,7 +2,7 @@
 // Handles incoming messages and responds with recipe suggestions
 // Setup: see WHATSAPP_SETUP.md
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // ── Webhook verification (GET) ─────────────────────────────────
   if (req.method === 'GET') {
     const mode      = req.query['hub.mode'];

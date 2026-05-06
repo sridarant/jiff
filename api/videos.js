@@ -5,7 +5,7 @@ const YT_KEY   = process.env.YOUTUBE_API_KEY;
 const YT_URL   = 'https://www.googleapis.com/youtube/v3';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── Diagnostic endpoint: ?check=true ─────────────────────────

@@ -14,7 +14,7 @@ function rateLimitPlanner(ip) {
 }
 
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const cIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   const rl  = rateLimitPlanner(cIp);
   if (!rl.allowed) return res.status(429).json({ error: 'Too many requests. Please wait a moment.', retryAfter: 60 });

@@ -1,7 +1,7 @@
 // api/payments.js — Consolidated: create-order + verify-payment (Razorpay)
 // Route by ?action=create | verify
 
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 const PLANS = {
   monthly:  { amount: 9900,   currency: 'INR', description: 'Jiff Premium — Monthly' },
@@ -9,7 +9,7 @@ const PLANS = {
   lifetime: { amount: 299900, currency: 'INR', description: 'Jiff Premium — Lifetime' },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const action    = req.query.action || req.body?.action;

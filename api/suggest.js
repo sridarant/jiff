@@ -83,7 +83,7 @@ async function validateApiKey(apiKey, supabaseUrl, serviceKey) {
   } catch { return { ok: false, error: 'Key validation error.' }; }
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('[suggest] HANDLER_ENTERED method=' + req.method + ' version=' + DEBUG_VERSION);
   try {
     return await _suggestHandler(req, res);
