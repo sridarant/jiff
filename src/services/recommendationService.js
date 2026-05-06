@@ -281,7 +281,6 @@ function scoreMeal(meal, ctx) {
     continuityRecentCuisines, activeEvent, journeyTagBoosts,
     successBoostMap = {},
     lastCookedName  = null,
-    pantryItems     = [],
   } = ctx;
 
   const nameLower       = meal.name.toLowerCase().trim();
@@ -639,7 +638,6 @@ export function getPersonalisedRecommendations({
     continuityRecentCuisines, activeEvent, journeyTagBoosts, journeyType,
     successBoostMap,
     lastCookedName,
-    pantryItems: [], // pantry removed — feasibility uses tag-based proxy only
   };
 
   const compatible = MEAL_CATALOGUE.filter(m => isDietaryCompatible(m, userDietIds));
