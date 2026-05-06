@@ -1,7 +1,5 @@
 // api/suggest.js — Internal suggest + Public API v1 (?v=1 + X-API-Key)
 
-import crypto from 'crypto';
-
 const DAILY_LIMITS = { free: 10, starter: 500, pro: 5000 };
 
 // ── Token usage logger (fire-and-forget, never blocks response) ────
@@ -81,7 +79,7 @@ async function validateApiKey(apiKey, supabaseUrl, serviceKey) {
   } catch { return { ok: false, error: 'Key validation error.' }; }
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     return await _suggestHandler(req, res);
   } catch (err) {

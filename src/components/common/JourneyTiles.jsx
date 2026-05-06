@@ -305,6 +305,7 @@ export function JourneyTiles({
   showPrefNudge = false,
   onNotYet,
   onShowSomethingElse,
+  profileLoaded = false,
 }) {
   const navigate = useNavigate();
   const [showMood,  setShowMood]  = useState(false);
@@ -357,6 +358,12 @@ export function JourneyTiles({
     const mapped  = loadCards(initCtx);
     if (mapped.length > 0) markAsShown(mapped.map(c => c.label));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When profile finishes loading, refresh cards with personalised data
+  // This prevents showing generic (profile=null) recommendations on first render
+  useEffect(() => {
+    if (profileLoaded) loadCards(null);
+  }, [profileLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!cards) return;

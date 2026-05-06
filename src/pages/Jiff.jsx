@@ -347,7 +347,7 @@ export default function Jiff() {
 
         {journeyMode && user && view === 'input' && (
           <JourneyTiles
-            user={user} profile={profile} season={season} streak={streak}
+            user={user} profile={profile} profileLoaded={profileLoaded} season={season} streak={streak}
             country={profile?.country || 'IN'}
             ratings={ratings} mealHistory={mealHistory}
             didYouCookNudge={didYouCookNudge}
