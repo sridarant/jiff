@@ -1,6 +1,6 @@
 {
   "name": "jiff",
-  "version": "1.23.38",
+  "version": "1.23.39",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
