@@ -248,7 +248,7 @@ export default function History() {
               {isOpen && (
                 <div style={s.cardBody}>
                   {/* Meal list */}
-                  {meals.map((meal, i) => (
+                  {(Array.isArray(meals) ? meals : []).map((meal, i) => (
                     <div key={i} style={{...s.meal, borderBottom: i < meals.length-1 ? '1px solid rgba(0,0,0,0.05)' : 'none'}}>
                       <span style={{fontSize:20}}>{meal.emoji}</span>
                       <div>
@@ -263,7 +263,7 @@ export default function History() {
                     <div style={{marginTop:12}}>
                       <div style={{fontSize:11, letterSpacing:'1.5px', textTransform:'uppercase', color:C.jiff, fontWeight:500, marginBottom:6}}>Ingredients used</div>
                       <div style={s.ingList}>
-                        {entry.ingredients.map((ing, i) => <span key={i} style={s.ingTag}>{ing}</span>)}
+                        {(entry.ingredients || []).map((ing, i) => <span key={i} style={s.ingTag}>{ing}</span>)}
                       </div>
                     </div>
                   )}

@@ -93,11 +93,11 @@ export function normalizeResponse(data) {
  *
  * @param {object} context  — caller-supplied overrides (kidsMode, kidsPromptOverride, etc.)
  * @param {object} profile  — user profile (food_type, spice_level, allergies, etc.)
- * @param {object} options  — { pantry, lang, units, country }
+ * @param {object} options  — { lang, units, country }
  * @returns {Promise<object[]>} Normalized meal array
  */
 export async function generateMeal(context = {}, profile = null, options = {}) {
-  const { pantry = [], lang = 'en', units = 'metric', country = 'IN' } = options;
+  const { lang = 'en', units = 'metric', country = 'IN' } = options;
 
   // Diet — derive from profile, never hardcode
   const effectiveDiet = (() => {
@@ -123,7 +123,7 @@ export async function generateMeal(context = {}, profile = null, options = {}) {
   } : null;
 
   const data = await generateRecipes({
-    ingredients:        context.ingredients        || pantry || [],
+    ingredients:        context.ingredients        || [],
     time:               context.time               || '30 min',
     diet:               effectiveDiet,
     cuisine:            effectiveCuisine,

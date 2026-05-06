@@ -26,7 +26,7 @@ export default function TasteTab({
   foodType, setFoodType,
   spiceLevel, setSpiceLevel,
   skillLevel, setSkillLevel,
-  allergies, setAllergies,
+  allergies = [], setAllergies,
   allergyInput, setAllergyInput,
   prefCuisines, setPrefCuisines,
   pill, C,

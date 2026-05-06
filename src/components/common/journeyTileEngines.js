@@ -56,7 +56,7 @@ function getFeaturedTile({ festival, sports, weather, dayCtx, profile, isReturni
     const cl = lastFavCuisine.replace(/_/g,' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
     return { emoji:'🍽️', badge:'WELCOME BACK', label:'Pick up where you left off', sub:'More '+cl+' — your favourite cuisine', color:'#1D4ED8', bg:'rgba(29,78,216,0.06)', border:'rgba(29,78,216,0.2)', context:{ cuisine:lastFavCuisine, mealType:'dinner' } };
   }
-  return { emoji:'🧊', label:"What's in my fridge?", sub:'Use what you have — your pantry is ready', color:'#FF4500', bg:'rgba(255,69,0,0.06)', border:'rgba(255,69,0,0.2)', context:null, isFridge:true };
+  return { emoji:'🧊', label:'Cook with what I have', sub:'Pick a meal, then mark what you need.', color:'#FF4500', bg:'rgba(255,69,0,0.06)', border:'rgba(255,69,0,0.2)', context:null, isFridge:true };
 }
 
 // Thin wrapper for any callers that still use this

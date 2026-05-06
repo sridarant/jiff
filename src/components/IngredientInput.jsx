@@ -85,7 +85,7 @@ function getIngredientEmoji(ing) {
   return '🧂';
 }
 
-export default function IngredientInput({ ingredients, onChange, pantryIngredients = [], placeholder, lang = 'en' }) {
+export default function IngredientInput({ ingredients = [], onChange, pantryIngredients = [], placeholder, lang = 'en' }) {
   const [inputVal,    setInputVal]    = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(-1);
@@ -201,7 +201,7 @@ export default function IngredientInput({ ingredients, onChange, pantryIngredien
         <div className="ing-box" onClick={() => inputRef.current?.focus()}>
           {ingredients.map(ing => (
             <span key={ing} className={`ing-tag ${isPantry(ing) ? 'pantry' : ''}`}
-              title={isPantry(ing) ? 'From your pantry' : ''}>
+              title={isPantry(ing) ? 'Staple ingredient' : ''}>
               {ing}
               <button className="ing-tag-remove"
                 onClick={e => { e.stopPropagation(); removeIngredient(ing); }}>×</button>

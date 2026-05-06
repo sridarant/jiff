@@ -111,7 +111,7 @@ const CUISINE_PICKER_GROUPS = [
 ];
 
 const GOAL_OPTIONS = [
-  { id:'use_what_i_have', emoji:'🧊', label:'Use what I have',   desc:'Zero-waste cooking'         },
+  { id:'use_what_i_have', emoji:'🧊', label:'Cook with what I have', desc:'Zero-waste cooking'         },
   { id:'eat_healthier',   emoji:'🥗', label:'Eat healthier',     desc:'Balanced, nutritious meals' },
   { id:'try_new_things',  emoji:'🌍', label:'Try new things',    desc:'Explore new cuisines'       },
   { id:'cook_faster',     emoji:'⚡', label:'Cook faster',       desc:'Quick weekday meals'        },

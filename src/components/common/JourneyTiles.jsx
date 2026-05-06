@@ -160,7 +160,7 @@ function AlternateRow({ emoji, label, effortMins, why, onSwap, onNotForMe }) {
 function ChangeDirectionRow({ onOption }) {
   const options = [
     { key:'mood',     label:'Match my mood',  emoji:'😊' },
-    { key:'fridge',   label:'Use what I have',emoji:'🧊' },
+    { key:'fridge',   label:'Cook with what I have',emoji:'🧊' },
     { key:'surprise', label:'Surprise me',    emoji:'✨' },
     { key:'kids',     label:'Cook for kids',  emoji:'🎒' },
     { key:'leftover', label:'Use leftovers',  emoji:'♻️' },
@@ -643,7 +643,7 @@ export function JourneyTiles({
             style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'20px 18px', borderRadius:18, background:'rgba(255,69,0,0.055)', border:'1.5px solid rgba(255,69,0,0.16)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textAlign:'left' }}>
             <span style={{ fontSize:36 }}>🧊</span>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:16, fontWeight:700, color:C.ink, marginBottom:4, fontFamily:"'Fraunces',serif" }}>{"What's in my fridge?"}</div>
+              <div style={{ fontSize:16, fontWeight:700, color:C.ink, marginBottom:4, fontFamily:"'Fraunces',serif" }}>{"Cook with what I have?"}</div>
               <div style={{ fontSize:12, color:C.muted, fontWeight:300 }}>Tell me what you have — get a meal in 10 seconds</div>
             </div>
             <span style={{ fontSize:20, color:C.jiff }}>{'→'}</span>

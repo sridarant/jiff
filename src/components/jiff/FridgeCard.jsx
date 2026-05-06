@@ -17,7 +17,7 @@ const MODE_CONFIG = {
     border:   'rgba(29,158,117,0.22)',
     accent:   '#1D9E75',
     icon:     '\u{1F9CA}',
-    title:    "What's in your fridge?",
+    title:    "Cook with what I have",
     sub:      'Add what you have \u00b7 Jiff finds what to make',
     chipLabel:'Quick add',
   },
@@ -43,7 +43,7 @@ const MODE_CONFIG = {
 
 export default function FridgeCard({
   inputMode = 'fridge',
-  fridgeItems, setFridgeItems, pantry,
+  fridgeItems, setFridgeItems,
   diet, setDiet, time, setTime, cuisine, setCuisine,
   defaultServings, setDefaultServings,
   profile, lang, user,
@@ -55,8 +55,6 @@ export default function FridgeCard({
 
   const quickAddItems = inputMode === 'leftover'
     ? LEFTOVER_CHIPS
-    : (pantry?.length > 0
-        ? pantry.filter(p => !fridgeItems.includes(p)).slice(0, 12)
         : QUICK_ADD_STAPLES.filter(s => !fridgeItems.includes(s)));
 
   const addItem = item => setFridgeItems(prev => [...new Set([...prev, item])]);
@@ -119,20 +117,6 @@ export default function FridgeCard({
         </div>
       </div>
 
-      {/* Pantry strip */}
-      {pantry?.length > 0 && (
-        <div style={{ margin:'10px 18px 0', padding:'8px 12px', background:'rgba(29,158,117,0.04)', border:'1px solid rgba(29,158,117,0.15)', borderRadius:10, display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:14 }}>{'\ud83c\udf3f'}</span>
-          <div style={{ fontSize:11, color:'#1D9E75', fontWeight:300, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            <span style={{ fontWeight:600 }}>{'Pantry assumed: '}</span>
-            {pantry.slice(0,6).join(', ')}{pantry.length > 6 ? ' +' + (pantry.length-6) + ' more' : ''}
-          </div>
-          <button onClick={() => navigate('/profile', { state:{ tab:'pantry' } })}
-            style={{ fontSize:10, color:'#1D9E75', background:'none', border:'1px solid rgba(29,158,117,0.3)', borderRadius:6, padding:'3px 9px', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", flexShrink:0, fontWeight:500 }}>
-            {'Edit'}
-          </button>
-        </div>
-      )}
 
       {/* Filters */}
       <div style={{ padding:'14px 18px 0', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>

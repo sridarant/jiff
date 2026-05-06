@@ -94,10 +94,9 @@ function EffortTag({ meal }) {
 }
 
 export default function ResultsView({
-  meals, mealType, cuisine, time, diet, defaultServings,
+  meals = [], mealType, cuisine, time, diet, defaultServings,
   ingredients, profile, user, isPremium, trialActive, PAID_RECIPE_CAP,
   ratings, setRatings, isFav, toggleFavourite, country,
-  pantryNudge, setPantryNudge,
   CUISINE_OPTIONS, tileContext,
   stapleSuggestion, onDismissStapleSuggestion, onAddStaple,
   handleSurprise, onRate, reset, navigate, t,
@@ -198,11 +197,7 @@ export default function ResultsView({
         </div>
       )}
 
-      {pantryNudge.length > 0 && (
-        <div style={{ background:'rgba(92,107,192,0.08)', border:'1px solid rgba(92,107,192,0.2)', borderRadius:12, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
-          <span style={{ fontSize:13, color:'#3949AB', fontWeight:300 }}>
-            {'🧂 You may need to restock: '}
-            <strong>{pantryNudge.join(', ')}</strong>
+      </strong>
           </span>
           <button onClick={() => setPantryNudge([])} style={{ background:'none', border:'none', color:'#9E9E9E', cursor:'pointer', fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>{'✕'}</button>
         </div>

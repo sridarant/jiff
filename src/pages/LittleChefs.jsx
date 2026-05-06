@@ -115,7 +115,7 @@ function ChefRecipeCard({ meal }) {
             🛒 What you need:
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {meal.ingredients.map((ing, i) => (
+            {(meal.ingredients || []).map((ing, i) => (
               <span key={i} style={{
                 fontSize:12, padding:'4px 10px',
                 background:'rgba(28,10,0,0.04)', borderRadius:20,
@@ -157,7 +157,7 @@ function ChefRecipeCard({ meal }) {
 
 export default function LittleChefs() {
   const navigate  = useNavigate();
-  const { pantry, profile } = useAuth();
+  const { profile } = useAuth();
 
   const [age,   setAge]   = useState('7to10');
   const [skill, setSkill] = useState('can_help');
@@ -171,7 +171,7 @@ export default function LittleChefs() {
     const selectedSkill = SKILL_LEVELS.find(s => s.id === skill);
     try {
       const meals = await generateMeal({
-        ingredients: pantry || ['rice', 'dal', 'vegetables'],
+        ingredients: [],
         time: '30 min', servings: 2, count: 3, kidsMode: true,
         kidsPromptOverride: `You are a fun cooking teacher for children. Generate exactly 3 simple recipes for a child aged ${selectedAge?.label||'7-10 yrs'}, skill level: ${selectedSkill?.label||'can help'}. Age notes: ${selectedAge?.note||''}. Mark heat/knife steps with [ASK AN ADULT]. Use short encouraging steps. Return ONLY this JSON, no other text: {"meals":[{"name":"Name","time":"15 min","servings":2,"description":"Short fun description","ingredients":["1 cup item"],"method":["Step text"],"nutrition":{"calories":200,"protein":"5g","carbs":"30g","fat":"8g"}}]}`,
       }, profile);
@@ -277,7 +277,7 @@ export default function LittleChefs() {
               </div>
               <button onClick={() => setView('input')} style={{ padding:'7px 12px', fontSize:12, background:'none', border:'1px solid ' + (C.border), borderRadius:8, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>↺ Cook something else</button>
             </div>
-            {meals.map((meal, i) => <ChefRecipeCard key={i} meal={meal} />)}
+            {(Array.isArray(meals) ? meals : []).map((meal, i) => <ChefRecipeCard key={i} meal={meal} />)}
             {meals.length === 0 && (
               <div style={{ textAlign:'center', padding:'40px', color:C.muted }}>No recipes found. Try again.</div>
             )}

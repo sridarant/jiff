@@ -164,7 +164,8 @@ JSON only — ${maxCount} objects:
 
   // ── Ingredient translation (?action=translate) ────────────────
   if (req.query.action === 'translate') {
-    const { term, lang = 'en' } = req.body;
+    const _tb = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { term, lang = 'en' } = _tb;
     if (!term?.trim()) return res.status(400).json({ error: 'term required' });
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(200).json({ ok: false, meals: [], error: 'Service not configured' });
@@ -266,8 +267,7 @@ JSON only — ${maxCount} objects:
     }
   }
 
-  // Ingredients required for normal generation
-  if (!req.body?.ingredients?.length) return res.status(400).json({ error: 'ingredients array is required.' });
+  // Ingredients are OPTIONAL — recommendation-first flows generate from cuisine/mealType/profile only
 
   try {
     const safeBody2 = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
@@ -291,14 +291,23 @@ JSON only — ${maxCount} objects:
       ? _ingredients.filter(i => typeof i === 'string' && i.trim().length > 0)
       : [];
 
-    if (!safeIngredients.length) return res.status(400).json({ error: 'Please provide at least one ingredient.' });
+    // Check: do we have enough context to generate (ingredients OR cuisine/mealType/profile)?
+    const hasContext = safeIngredients.length > 0
+      || (cuisine && cuisine !== 'any')
+      || (mealType && mealType !== 'any')
+      || (tp && (tp.preferred_cuisines?.length || tp.spice_level))
+      || (diet && diet !== 'any' && diet !== 'none');
+
+    if (!hasContext) {
+      return res.status(200).json({ ok: false, meals: [], error: 'Please provide ingredients or preferences.' });
+    }
 
     const dietLabel    = (!diet || diet === 'none') ? 'no dietary restrictions' : diet;
 
     // ── Egg + vegetarian conflict fix (item u) ────────────────
     // If diet is vegetarian and ingredients contain eggs, treat as eggetarian
     // This prevents AI from returning egg dishes for strict vegetarian
-    const hasEggs = (ingredients || []).some(i => typeof i === 'string' && ['egg','eggs','boiled egg'].includes(i.toLowerCase().trim()));
+    const hasEggs = safeIngredients.some(i => ['egg','eggs','boiled egg'].includes(i.toLowerCase().trim()));
     let effectiveDiet = dietLabel;
     let eggRule = '';
     if (diet === 'vegetarian' && hasEggs) {
@@ -339,13 +348,13 @@ JSON only — ${maxCount} objects:
     const tp = tasteProfile || {};
     const profileLines = [];
     if (tp.spice_level && tp.spice_level !== 'medium') profileLines.push(`Spice level: ${tp.spice_level} — adjust heat accordingly.`);
-    if (tp.allergies?.length) profileLines.push(`Allergies — NEVER include: ${tp.allergies.join(', ')}.`);
-    if (tp.preferred_cuisines?.length && !cuisineLabel) profileLines.push(`User prefers: ${tp.preferred_cuisines.join(', ')} — favour these styles.`);
+    if (tp.allergies?.length) profileLines.push(`Allergies — NEVER include: ${(Array.isArray(tp.allergies) ? tp.allergies : []).join(', ')}.`);
+    if (tp.preferred_cuisines?.length && !cuisineLabel) profileLines.push(`User prefers: ${(Array.isArray(tp.preferred_cuisines) ? tp.preferred_cuisines : []).join(', ')} — favour these styles.`);
     if (tp.skill_level === 'beginner') profileLines.push('User is a beginner cook — keep techniques simple.');
     if (tp.skill_level === 'advanced') profileLines.push('Advanced cook — feel free to use sophisticated techniques.');
 
     // Family mode — merge dietary restrictions from all eating members
-    const familyMembers = req.body.familyMembers || [];
+    const familyMembers = Array.isArray(safeBody2.familyMembers) ? safeBody2.familyMembers : [];
     if (familyMembers.length > 0) {
       const allRestrictions = [...new Set(familyMembers.map(m => m.dietary).filter(Boolean))];
       const allAllergies = [...new Set(familyMembers.flatMap(m => m.allergies || []))];
@@ -362,7 +371,7 @@ JSON only — ${maxCount} objects:
 
     const prompt = `You are a creative, practical chef with deep knowledge of world cuisines.
 
-Available ingredients: ${safeIngredients.join(', ')}.
+${safeIngredients.length > 0 ? 'Available ingredients: ' + safeIngredients.join(', ') + '.' : 'No specific ingredients — generate based on cuisine, meal type, and preferences.'}
 Time available: ${time}.
 Dietary preference: ${effectiveDiet}. ${eggRule}
 Meal type: ${mealTypeRule}
@@ -390,7 +399,7 @@ Suggest exactly ${count} meal${count > 1 ? 's' : ''}. Respond ONLY with a valid 
   }
 ]
 
-Rules: use given ingredients as base; mark pantry staples with *; keep steps concise; each meal must be distinct.`;
+${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantry staples with *; keep steps concise; each meal must be distinct.' : 'Rules: create authentic recipes for the cuisine and meal type; keep steps concise; each meal must be distinct.'}\`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

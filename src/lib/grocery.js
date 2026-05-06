@@ -50,8 +50,9 @@ export function isAvailable(core, fridge) {
  * Returns { need: string[], have: string[] }
  */
 export function buildGroceryList(ingredients, fridge) {
+  const safeIngredients = Array.isArray(ingredients) ? ingredients : [];
   const need = [], have = [];
-  ingredients.forEach(ing => {
+  safeIngredients.forEach(ing => {
     const core = extractCoreName(ing);
     if (!core) return;
     const clean = ing.replace(/^\*\s*/, '');

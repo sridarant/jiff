@@ -1,7 +1,7 @@
 {
   "name": "Jiff \u2014 Meals in a Jiff",
   "short_name": "Jiff",
-  "description": "Open your fridge. Type what's inside. Get 3 real meals ready to cook.",
+  "description": "Tell Jiff what you feel like. Get a meal you can cook right now.",
   "start_url": "/app",
   "display": "standalone",
   "background_color": "#FFFAF5",

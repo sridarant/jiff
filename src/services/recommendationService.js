@@ -22,7 +22,6 @@
 // Repetition control: same meal blocked 3 sessions; same cuisine capped 2 consecutive
 
 import { parseFoodTypeIds } from '../lib/dietary.js';
-import { buildGroceryList } from '../lib/grocery.js';
 import { getActiveEvent, getEventBoost, getMealContextLabel } from '../lib/eventIntelligence.js';
 import { getRecentSuccessBoostMap } from '../hooks/useRetention.js';
 import {
@@ -412,17 +411,12 @@ function scoreMeal(meal, ctx) {
 
   // ── 5. feasibilityScore (weight 0.10) — NEW ───────────────────
   // Penalise meals where the user likely lacks key ingredients.
-  // Uses the same buildGroceryList as IngredientSummary.
-  // MUST_HAVE tags are a proxy for "key ingredients" — heavy/indulgent meals
+  // // MUST_HAVE tags are a proxy for "key ingredients" — heavy/indulgent meals
   // tend to need speciality items; light/quick meals tend to use staples.
   let feasibilityScore = 1.0;
 
-  if (pantryItems && pantryItems.length > 0 && Array.isArray(meal.mustHave)) {
-    // If catalogue meal has explicit mustHave list, use it
-    const { need } = buildGroceryList(meal.mustHave, pantryItems);
-    const missingRatio = need.length / Math.max(1, meal.mustHave.length);
-    feasibilityScore = Math.max(0.1, 1 - missingRatio);
-  } else {
+  // Pantry pre-input removed — feasibility uses tag-based proxy only
+  {
     // Proxy: heavy/special meals require harder-to-find ingredients
     // Quick/light/everyday meals are assumed feasible with a basic pantry
     if (meal.tags.includes('heavy') || meal.tags.includes('indulgent') || meal.tags.includes('special')) {
@@ -645,7 +639,7 @@ export function getPersonalisedRecommendations({
     continuityRecentCuisines, activeEvent, journeyTagBoosts, journeyType,
     successBoostMap,
     lastCookedName,
-    pantryItems: (() => { try { return JSON.parse(localStorage.getItem('jiff-pantry') || '[]'); } catch { return []; } })(),
+    pantryItems: [], // pantry removed — feasibility uses tag-based proxy only
   };
 
   const compatible = MEAL_CATALOGUE.filter(m => isDietaryCompatible(m, userDietIds));

@@ -23,7 +23,7 @@ export default function RetentionNudges({
   welcomeBack, weeklyDigest, milestone, didYouCookNudge, continuityNudge,
   upgradeNudge, onDismissUpgrade,
   onConfirmCooked, onNotYet, onShowSomethingElse, onDismissNudge,
-  lastFavCuisine, weekCookCount,
+  lastFavCuisine,
 }) {
   return (
     <>
@@ -101,13 +101,11 @@ export default function RetentionNudges({
           <div style={{ flex:1, fontSize:12, color:'#CC3700', lineHeight:1.4 }}>
             {'Last time you liked '}
             <strong>{continuityNudge.mealName}</strong>
-            {continuityNudge.daysAgo === 1 ? ' — want something similar?' : ' — try it again?'}
+            {' — something similar ' + (continuityNudge.period || 'today') + '?'}
           </div>
           <DismissBtn onClick={() => onDismissNudge?.('continuity')} />
         </div>
       )}
-
-
 
       {/* Upgrade nudge */}
       {upgradeNudge && (

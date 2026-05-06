@@ -13,9 +13,8 @@ import { useState } from 'react';
 import { buildGroceryList } from '../../lib/grocery.js';
 import { scaleIngredient } from '../../lib/scaling.js';
 
-// Default pantry — basics most Indian households have.
-// This is used only when no user pantry is passed in.
-const DEFAULT_PANTRY = [
+// Default staples — pre-selected as "have" in the ingredient check UI.
+const DEFAULT_STAPLES = [
   'oil', 'salt', 'water', 'onion', 'garlic', 'ginger',
   'tomato', 'green chilli', 'turmeric', 'cumin', 'mustard seeds',
   'coriander powder', 'red chilli powder', 'garam masala',
@@ -47,7 +46,7 @@ export default function IngredientSummary({ ingredients = [], pantry = [], scale
   const [expandedItem, setExpandedItem] = useState(null);
 
   // Use user's pantry if provided, else fall back to defaults
-  const effectivePantry = (pantry && pantry.length > 0) ? pantry : DEFAULT_PANTRY;
+  const effectivePantry = (pantry && pantry.length > 0) ? pantry : DEFAULT_STAPLES;
 
   const { need, have } = buildGroceryList(ingredients, effectivePantry);
 
@@ -99,7 +98,7 @@ export default function IngredientSummary({ ingredients = [], pantry = [], scale
               </div>
               {have.length > 0 && (
                 <div style={{ fontSize:11, color:'#7C6A5E', marginTop:2 }}>
-                  {have.length + ' available in your pantry'}
+                  {have.length + ' already available'}
                 </div>
               )}
             </div>

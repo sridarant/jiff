@@ -25,7 +25,7 @@ const TILE_MSGS = {
 };
 
 export function useRecipes({
-  user, profile, pantry, pantryItems,
+  user, profile,
   isPremium, PAID_RECIPE_CAP,
   checkAccess, recordUsage,
   time, diet, cuisine, mealType, defaultServings,
@@ -40,7 +40,6 @@ export function useRecipes({
   const [loadingMessage, setLoadingMessage] = useState('Finding your perfect recipes...');
   const [factIdx,        setFactIdx]        = useState(0);
   const [tileContext,    setTileContext]    = useState(null); // { type, label, emoji, color, bg }
-  const [pantryNudge,    setPantryNudge]    = useState([]);
 
   // Async guard — prevents overlapping generation calls
   const isGenerating = useRef(false);
@@ -142,7 +141,7 @@ export function useRecipes({
     }
   }, [user, isPremium, PAID_RECIPE_CAP, checkAccess, recordUsage,
       time, diet, cuisine, mealType, defaultServings, lang, units,
-      profile, pantry, handleStreak]);
+      profile, handleStreak]);
 
   // ── 1-tap tile generation ───────────────────────────────────────
   const handleGenerateDirect = useCallback(async (context = {}) => {
@@ -165,9 +164,7 @@ export function useRecipes({
         // Will be picked up by the diet state already set from profile load
       }
     }
-    const tileIngredients = pantryItems?.length
-      ? pantryItems
-      : ['rice', 'onion', 'tomato', 'oil', 'salt', 'chilli'];
+    const tileIngredients = [];
 
     // Build context descriptor for result banner
     // Build rich context descriptor for result banner
@@ -252,7 +249,7 @@ export function useRecipes({
     }
   }, [user, isPremium, PAID_RECIPE_CAP, checkAccess,
       time, diet, cuisine, mealType, defaultServings, lang, country,
-      pantryItems, setCuisine, setMealType, setJourneyMode, handleStreak]);
+      setCuisine, setMealType, setJourneyMode, handleStreak]);
 
   // ── Surprise me ─────────────────────────────────────────────────
   const handleSurprise = useCallback(async (season) => {
@@ -267,7 +264,7 @@ export function useRecipes({
 
       const data = await generateRecipes({
         ...buildBaseParams({ cuisine: surpriseCuisine }),
-        ingredients: pantry?.length ? pantry : (season?.items?.slice(0, 4) || ['rice', 'dal']),
+        ingredients: [],
         count,
         surpriseMode: true,
       });
@@ -285,7 +282,7 @@ export function useRecipes({
       setView('error');
     }
   }, [checkAccess, isPremium, PAID_RECIPE_CAP, recordUsage,
-      time, diet, lang, units, pantry, profile]);
+      time, diet, lang, units, profile]);
 
   // ── Ratings ─────────────────────────────────────────────────────
   const syncRatings = useCallback(async (userId) => {
@@ -315,8 +312,8 @@ export function useRecipes({
   }, []);
 
   return {
-    meals, view, errorMsg, loadingMessage, factIdx, pantryNudge, ratings, tileContext,
-    setView, setMeals, setErrorMsg, setFactIdx, setPantryNudge, setRatings,
+    meals, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
+    setView, setMeals, setErrorMsg, setFactIdx, setRatings,
     setTileContext, setLoadingMessage,
     handleSubmit, handleGenerateDirect, handleSurprise, handleRate, handleStreak,
     syncRatings, reset,

@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth }   from '../contexts/AuthContext';
 import { useLocale } from '../contexts/LocaleContext';
 import { parseFoodTypeIds } from '../lib/dietary';
-import { INDIAN_PANTRY_DEFAULTS } from '../components/profile/PantryTab';
 import { requestPermission, isNotificationsEnabled, setNotificationsEnabled } from '../lib/notificationService.js';
 
 const C = {
@@ -317,7 +316,7 @@ function CuisineSelector({ selected, onChange }) {
 // ── Main screen ───────────────────────────────────────────────────
 export default function Profile() {
   const navigate  = useNavigate();
-  const { user, profile, pantry, updateProfile, savePantry } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { lang, setLang, country, setCountry } = useLocale();
 
   const [diet,        setDiet]        = useState('veg');
@@ -327,8 +326,6 @@ export default function Profile() {
   const [hasKids,     setHasKids]     = useState(false);
   const [allergies,   setAllergies]   = useState('');
   const [cuisines,    setCuisines]    = useState([]);
-  const [pantryItems, setPantryItems] = useState([]);
-  const [pantryInput, setPantryInput] = useState('');
   const [region,      setRegion]      = useState('IN');
   const [notifsOn,    setNotifsOn]    = useState(isNotificationsEnabled());
   const [notifBreakfast, setNotifBreakfast] = useState(() => { try { return localStorage.getItem('jiff-notif-breakfast') !== 'false'; } catch { return true; } });
@@ -351,10 +348,7 @@ export default function Profile() {
     if (profile.country)                    setRegion(profile.country);
   }, [profile]);
 
-  useEffect(() => {
-    if (Array.isArray(pantry) && pantry.length > 0) setPantryItems(pantry);
-    else setPantryItems([...INDIAN_PANTRY_DEFAULTS]);
-  }, [pantry]); // eslint-disable-line
+
 
   const handleSave = async () => {
     if (!user) return;
@@ -372,7 +366,6 @@ export default function Profile() {
         country:            region,
       });
       setCountry(region);
-      await savePantry(pantryItems);
       setNotificationsEnabled(notifsOn);
       try { localStorage.setItem('jiff-notif-breakfast', notifBreakfast ? 'true' : 'false'); } catch {}
       try { localStorage.setItem('jiff-notif-lunch',     notifLunch     ? 'true' : 'false'); } catch {}
@@ -384,12 +377,7 @@ export default function Profile() {
     setSaving(false);
   };
 
-  const addPantryItem = (e) => {
-    if (e.key === 'Enter' && pantryInput.trim()) {
-      setPantryItems(prev => prev.includes(pantryInput.trim()) ? prev : [...prev, pantryInput.trim()]);
-      setPantryInput('');
-    }
-  };
+
 
   return (
     <div style={{ minHeight:'100vh', background:C.cream, fontFamily:"'DM Sans',sans-serif", color:C.ink, paddingBottom:90 }}>
@@ -461,30 +449,7 @@ export default function Profile() {
           <CuisineSelector selected={cuisines} onChange={setCuisines} />
         </Collapsible>
 
-        {/* ── SECTION 4: Pantry (collapsible) ─────────────── */}
-        <Collapsible label="Pantry basics included">
-          <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>
-            {'These are always available when suggesting recipes. Add or remove freely.'}
-          </div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
-            {pantryItems.map(item => (
-              <span key={item}
-                style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'4px 10px', borderRadius:20, background:'rgba(28,10,0,0.05)', border:'1px solid '+C.border, fontSize:11, color:C.ink }}>
-                {item}
-                <button onClick={() => setPantryItems(prev => prev.filter(p => p !== item))}
-                  style={{ background:'none', border:'none', cursor:'pointer', color:C.muted, fontSize:12, lineHeight:1, padding:0 }}>
-                  {'×'}
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            value={pantryInput} onChange={e => setPantryInput(e.target.value)} onKeyDown={addPantryItem}
-            placeholder="Type and press Enter to add"
-            style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:'1px solid '+C.border, fontSize:12, fontFamily:"'DM Sans',sans-serif", color:C.ink, background:'white', boxSizing:'border-box', outline:'none' }}
-          />
-        </Collapsible>
-
+        
         {/* ── SECTION 5: Language / Region / Notifications ─── */}
         <div style={{ marginBottom:28 }}>
           <SectionLabel>{'Language & region'}</SectionLabel>

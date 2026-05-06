@@ -59,7 +59,7 @@ export function GroceryPanel({ ingredients: ingredientsProp = [], fridgeIngredie
             <div className="grocery-header-sub">
               {need.length === 0
                 ? 'You have everything!'
-                : need.length + ' to buy · ' + have.length + ' in fridge'}
+                : need.length + ' to buy · ' + have.length + ' you have'}
             </div>
           </div>
         </div>
@@ -100,7 +100,7 @@ export function GroceryPanel({ ingredients: ingredientsProp = [], fridgeIngredie
       {have.length > 0 && (
         <div className="grocery-section">
           <div className="grocery-section-title have">
-            <span>{t('in_fridge')}</span>
+            <span>{'You have'}</span>
             <span className="grocery-count have">{have.length}</span>
           </div>
           <div className="grocery-items">

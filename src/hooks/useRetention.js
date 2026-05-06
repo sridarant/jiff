@@ -23,7 +23,7 @@ const K = {
 
 const COOK_HISTORY_MAX = 50;
 const CHALLENGES = [
-  { type:'pantry',    label:'Cook 3 meals from your pantry this week',     target:3 },
+  { type:'variety',   label:'Try 3 different meal types this week',         target:3 },
   { type:'cuisine',   label:'Try a new cuisine this week',                 target:1 },
   { type:'breakfast', label:'Make breakfast at home 3 mornings this week', target:3 },
   { type:'rated',     label:'Rate 3 recipes this week',                    target:3 },
@@ -100,12 +100,13 @@ export function useRetention({ mealHistory = [], ratings = {}, user, isPremium =
     const days     = daysSince(lastOpen);
     save(K.lastOpen, now);
 
-    // 1. Welcome back
-    if (days >= 3 && lastOpen) setWelcomeBack({ daysAway: days });
+    // 1. Welcome back — only after 5+ days away (3 days is a normal weekend)
+    if (days >= 5 && lastOpen) setWelcomeBack({ daysAway: days });
 
-    // 2. Did-you-cook nudge
+    // 2. Did-you-cook nudge — only ask if it was yesterday or 2 days ago (not stale)
     const lastGen = safe(K.lastGenerated);
-    if (lastGen && !lastGen.shown && daysSince(lastGen.timestamp) >= 1) {
+    const daysSinceGen = daysSince(lastGen?.timestamp);
+    if (lastGen && !lastGen.shown && daysSinceGen >= 1 && daysSinceGen <= 2) {
       setDidYouCookNudge({ mealName: lastGen.mealName, mealType: lastGen.mealType });
       save(K.lastGenerated, { ...lastGen, shown: true });
     }
@@ -116,7 +117,9 @@ export function useRetention({ mealHistory = [], ratings = {}, user, isPremium =
       if (liked) {
         const daysAgo = daysSince(liked.timestamp);
         if (daysAgo >= 1 && daysAgo <= 7) {
-          setContinuityNudge({ mealName: liked.mealName, daysAgo });
+          const h = new Date().getHours();
+          const period = h >= 17 ? 'tonight' : h >= 11 ? 'today' : 'this morning';
+          setContinuityNudge({ mealName: liked.mealName, daysAgo, period });
         }
       }
     }

@@ -119,9 +119,9 @@ export default function Landing() {
           />
           <EntryCard
             emoji="🥦"
-            label="Only a few ingredients"
-            sub="Make the most of what's there"
-            onClick={() => navigate('/app', { state:{ openFridge:true } })}
+            label="Cook with what I have"
+            sub="Pick your meal, then check what you need"
+            onClick={() => goApp()}
           />
         </div>
       </section>

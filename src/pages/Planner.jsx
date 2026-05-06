@@ -27,7 +27,7 @@ const DAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 export default function Planner() {
   const navigate = useNavigate();
   const { isPremium, trialActive, PAID_RECIPE_CAP } = usePremium();
-  const { profile, pantry } = useAuth();
+  const { profile } = useAuth();
   const { country } = useLocale();
 
   // Check profile completeness
@@ -68,7 +68,7 @@ export default function Planner() {
     setView('loading'); setErrorMsg(''); setPlan(null);
     try {
       const data = await generatePlan({
-        ingredients: pantry || [],
+        ingredients: [],
         mealTypes: selectedTypes,
         servings,
         cuisine: cuisines.join(', '),

@@ -27,7 +27,7 @@ const OCCASIONS = [
 
 export default function KidsDishes() {
   const navigate = useNavigate();
-  const { pantry, profile } = useAuth();
+  const { profile } = useAuth();
 
   const [age,      setAge]      = useState('6to10');
   const [occasion, setOccasion] = useState('everyday');
@@ -41,7 +41,7 @@ export default function KidsDishes() {
     const selectedOcc = OCCASIONS.find(o => o.id === occasion);
     try {
       const meals = await generateMeal({
-        ingredients: pantry || [],
+        ingredients: [],
         cuisine: 'kid-friendly',
         time: '30 min', servings: 2, count: 4,
         kidsMode: true,
@@ -146,8 +146,8 @@ export default function KidsDishes() {
               </div>
               <button onClick={() => setView('input')} style={{ padding:'7px 12px', fontSize:12, background:'none', border:'1px solid ' + (C.border), borderRadius:8, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>↺ Cook something else</button>
             </div>
-            {meals.map((meal, i) => (
-              <MealCard key={i} meal={meal} isFav={false} onToggleFav={()=>{}} rating={0} onRate={()=>{}} pantry={pantry||[]} />
+            {(Array.isArray(meals) ? meals : []).map((meal, i) => (
+              <MealCard key={i} meal={meal} isFav={false} onToggleFav={()=>{}} rating={0} onRate={()=>{}} pantry={[]} />
             ))}
             {meals.length === 0 && (
               <div style={{ textAlign:'center', padding:'40px 20px', color:C.muted }}>No recipes found. Try again.</div>

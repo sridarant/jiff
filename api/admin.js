@@ -95,7 +95,9 @@ async function _handler(req, res) {
       const { userId, meals, mealType, cuisine, servings, ingredients } = safeBody;
       if (!userId || !meals?.length) return fail200(res, 'Missing userId or meals');
       try {
-        const rows = meals.map(meal => ({
+        const safeMeals = Array.isArray(meals) ? meals : (meals ? [meals] : []);
+      if (!safeMeals.length) return fail200(res, 'meals must be a non-empty array');
+      const rows = safeMeals.map(meal => ({
           user_id: userId, meal, meal_type: mealType || 'any', cuisine: cuisine || 'any',
           servings: servings || 2, ingredients: ingredients || [], generated_at: new Date().toISOString(),
         }));

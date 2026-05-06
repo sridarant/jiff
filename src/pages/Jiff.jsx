@@ -34,7 +34,7 @@ export default function Jiff() {
   const navJourneyCtx = location.state?.journeyContext   || null;
 
   const {
-    user, profile, pantry, updateProfile, toggleFavourite, isFav,
+    user, profile, updateProfile, toggleFavourite, isFav,
     signInWithGoogle, signInWithEmail, signOut, supabaseEnabled, authLoading,
   } = useAuth();
 
@@ -50,7 +50,6 @@ export default function Jiff() {
 
   // ── Input state ────────────────────────────────────────────────
   const [fridgeItems,     setFridgeItems]     = useState([]);
-  const [pantryItems,     setPantryItems]     = useState([]);
   const [time,            setTime]            = useState('30 min');
   const [diet,            setDiet]            = useState('none');
   const [cuisine,         setCuisine]         = useState('any');
@@ -63,7 +62,6 @@ export default function Jiff() {
     return 'any';
   });
   const [defaultServings, setDefaultServings] = useState(2);
-  const [pantryLoaded,    setPantryLoaded]    = useState(false);
   const [profileLoaded,   setProfileLoaded]   = useState(false);
 
   // journeyMode = true  → show JourneyTiles (decision screen)
@@ -83,7 +81,7 @@ export default function Jiff() {
   const [mealHistory,     setMealHistory]     = useState([]);
   const [stapleSuggestion,setStapleSuggestion]= useState(null);
 
-  const ingredients = [...new Set([...fridgeItems, ...pantryItems])];
+  const ingredients = [...new Set([...fridgeItems])];
 
   // ── Business logic via hooks ───────────────────────────────────
   const {
@@ -92,7 +90,7 @@ export default function Jiff() {
     handleSubmit, handleGenerateDirect, handleSurprise, handleRate,
     syncRatings, reset: resetRecipes,
   } = useRecipes({
-    user, profile, pantry, pantryItems,
+    user, profile,
     isPremium, PAID_RECIPE_CAP, checkAccess, recordUsage,
     time, diet, cuisine, mealType, defaultServings,
     lang, units, country,
@@ -112,9 +110,7 @@ export default function Jiff() {
   } = useRetention({ mealHistory, ratings, user, isPremium });
 
   // ── Effects ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!pantryLoaded && pantry?.length) { setPantryItems(pantry); setPantryLoaded(true); }
-  }, [pantry, pantryLoaded]);
+
 
   useEffect(() => {
     if (profile && !profileLoaded) {
@@ -186,7 +182,7 @@ export default function Jiff() {
   };
 
   const reset = () => {
-    resetRecipes(); setFridgeItems([]); setPantryItems(pantry || []);
+    resetRecipes(); setFridgeItems([]);
     setPantryLoaded(true); setInputMode('direct');
     // Return to decision screen, not the fridge card
     setJourneyMode(true); setTileContext(null);
