@@ -31,7 +31,7 @@ export default function Planner() {
   const { country } = useLocale();
 
   // Check profile completeness
-  const hasProfile = profile && (profile.preferred_cuisines?.length || profile.food_type?.length || pantry?.length);
+  const hasProfile = profile && (profile.preferred_cuisines?.length || profile.food_type?.length);
 
   const [servings,      setServings]      = useState(2);
   const [selectedTypes, setSelectedTypes] = useState(['breakfast','lunch','dinner']);
