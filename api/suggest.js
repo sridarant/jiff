@@ -1,5 +1,9 @@
 // api/suggest.js — Internal suggest + Public API v1 (?v=1 + X-API-Key)
 
+// ── RUNTIME INSTRUMENTATION (safe to leave in production) ────────
+const DEBUG_VERSION = 'v1.23.35-debug';
+console.log('[suggest] FILE_LOADED', DEBUG_VERSION);
+
 const DAILY_LIMITS = { free: 10, starter: 500, pro: 5000 };
 
 // ── Token usage logger (fire-and-forget, never blocks response) ────
@@ -79,12 +83,14 @@ async function validateApiKey(apiKey, supabaseUrl, serviceKey) {
   } catch { return { ok: false, error: 'Key validation error.' }; }
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
+  console.log('[suggest] HANDLER_ENTERED method=' + req.method + ' version=' + DEBUG_VERSION);
   try {
     return await _suggestHandler(req, res);
   } catch (err) {
-    console.error('[suggest] Fatal unhandled error:', err?.message || err);
-    return res.status(200).json({ ok: false, meals: [], error: 'Internal server error' });
+    console.error('[suggest] FATAL_UNHANDLED stage=outer error=' + (err?.message || String(err)));
+    console.error(err?.stack || '(no stack)');
+    return res.status(200).json({ ok: false, meals: [], error: err?.message || 'Internal server error', stage: 'outer', debugVersion: DEBUG_VERSION });
   }
 }
 
@@ -268,6 +274,7 @@ JSON only — ${maxCount} objects:
   // Ingredients are OPTIONAL — recommendation-first flows generate from cuisine/mealType/profile only
 
   try {
+    console.log('[suggest] STAGE_1 body_parse req.body type=' + typeof req.body);
     const safeBody2 = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
     const {
       ingredients: _ingredients,
@@ -292,14 +299,17 @@ JSON only — ${maxCount} objects:
     // Check: do we have enough context to generate (ingredients OR cuisine/mealType/profile)?
     // NOTE: tasteProfile (not tp) used here because tp is declared later
     const _tp = (tasteProfile && typeof tasteProfile === 'object') ? tasteProfile : {};
+    console.log('[suggest] STAGE_2 ingredients=' + safeIngredients.length + ' cuisine=' + cuisine + ' mealType=' + mealType + ' diet=' + diet);
     const hasContext = safeIngredients.length > 0
       || (cuisine && cuisine !== 'any')
       || (mealType && mealType !== 'any')
       || (_tp.preferred_cuisines?.length > 0 || Boolean(_tp.spice_level))
       || (diet && diet !== 'any' && diet !== 'none');
 
+    console.log('[suggest] STAGE_3 hasContext=' + hasContext);
     if (!hasContext) {
-      return res.status(200).json({ ok: false, meals: [], error: 'Please provide ingredients or preferences.' });
+      console.log('[suggest] NO_CONTEXT returning empty');
+      return res.status(200).json({ ok: false, meals: [], error: 'Please provide ingredients or preferences.', debugVersion: DEBUG_VERSION });
     }
 
     const dietLabel    = (!diet || diet === 'none') ? 'no dietary restrictions' : diet;
@@ -401,18 +411,21 @@ Suggest exactly ${count} meal${count > 1 ? 's' : ''}. Respond ONLY with a valid 
 
 ${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantry staples with *; keep steps concise; each meal must be distinct.' : 'Rules: create authentic recipes for the cuisine and meal type; keep steps concise; each meal must be distinct.'}\`;
 
+    console.log('[suggest] STAGE_4 prompt_built len=' + prompt.length + ' apiKey_exists=' + Boolean(apiKey));
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] }),
     });
 
+    console.log('[suggest] STAGE_5 anthropic_response status=' + response.status);
     const rawBody = await response.text();
     let data;
     try { data = JSON.parse(rawBody); } catch { data = {}; }
     if (!response.ok) return res.status(200).json({ ok: false, meals: [], error: data.error?.message || 'AI service error' });
 
     const rawText = data.content?.map(c => c.text || '').join('') || '';
+    console.log('[suggest] STAGE_6 parsing raw length=' + rawText.length);
     let meals = null;
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
@@ -431,9 +444,11 @@ ${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantr
       sbKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     });
 
-    return res.status(200).json({ ok: true, meals: meals || [] });
+    console.log('[suggest] STAGE_7 success meals=' + (meals ? meals.length : 0));
+    return res.status(200).json({ ok: true, meals: meals || [], debugVersion: DEBUG_VERSION });
   } catch (err) {
-    console.error('[suggest/internal] Error:', err?.message || err);
-    return res.status(200).json({ ok: false, meals: [], error: err?.message || 'Internal server error' });
+    console.error('[suggest/internal] STAGE_FAIL error=' + (err?.message || String(err)));
+    console.error(err?.stack || '(no stack)');
+    return res.status(200).json({ ok: false, meals: [], error: err?.message || 'Internal server error', debugVersion: DEBUG_VERSION });
   }
 }
