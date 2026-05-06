@@ -133,7 +133,7 @@ async function _suggestHandler(req, res) {
       });
       const aiData = await aiRes.json();
       const raw = (aiData.content||[]).map(c=>c.text||'').join('');
-      const m = raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
+      const m = raw.replaceAll('```json', '').replaceAll('```', '').trim().match(/\{[\s\S]*\}/);
       if (m) { try { const parsed=JSON.parse(m[0]); return res.status(200).json(parsed); } catch {} }
       return res.status(200).json({ ok: false, meals: [], error: 'Could not parse response' });
     }
@@ -160,7 +160,7 @@ JSON only — ${maxCount} objects:
       });
       const data = await aiRes.json();
       if (!aiRes.ok) return res.status(aiRes.status).json({ error: data.error?.message || 'AI error' });
-      const match = data.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
+      const match = data.content?.map(c=>c.text||'').join('').replaceAll('```json', '').replaceAll('```', '').trim().match(/\[[\s\S]*\]/);
       const meals = match ? JSON.parse(match[0]) : null;
       return res.status(200).json({ meals, meta: { count: meals?.length||0, language, cuisine: cuisine||'any', generated: new Date().toISOString(), tier: validation.record?.tier||'free', remaining: validation.remaining } });
     } catch (e) { console.error('[suggest/v1]', e?.message); return res.status(200).json({ ok: false, meals: [], error: 'Internal server error' }); }
@@ -184,7 +184,7 @@ JSON only — ${maxCount} objects:
       });
       const data = await aiRes.json();
       const raw = (data.content || []).map(c => c.text || '').join('');
-      const m = raw.replace(/```json|```/g, '').trim().match(/\{[\s\S]*\}/);
+      const m = raw.replaceAll('```json', '').replaceAll('```', '').trim().match(/\{[\s\S]*\}/);
       if (!m) return res.status(200).json({ found: false, message: 'Could not identify ingredient' });
       return res.status(200).json(JSON.parse(m[0]));
     } catch (e) { return res.status(200).json({ found: false, message: 'Translation service error' }); }
@@ -216,7 +216,7 @@ JSON only — ${maxCount} objects:
       if (raw.includes('"not_food"')) return res.status(400).json({ error: 'Photo does not show food ingredients.', code:'not_food' });
       let ingredients = [];
       try {
-        const cleaned = raw.replace(/```json|```/g,'').trim();
+        const cleaned = raw.replaceAll('```json', '').replaceAll('```', '').trim();
         const m = cleaned.match(/\[[\s\S]*\]/);
         if (m) ingredients = JSON.parse(m[0]);
       } catch (e) { return res.status(200).json({ ingredients: [], count: 0, error: 'Parse error' }); }
@@ -254,7 +254,7 @@ JSON only — ${maxCount} objects:
       const aiData = await aiRes.json();
       if (!aiRes.ok) return res.status(200).json({ ok: false, meals: [], error: 'AI service error' });
       const raw = (aiData.content || []).map(c => c.text || '').join('');
-      const clean = raw.replace(/```json|```/g, '').trim();
+      const clean = raw.replaceAll('```json', '').replaceAll('```', '').trim();
       // Try object first {meals:[]}, then flat array []
       const objMatch = clean.match(/\{[\s\S]*\}/);
       const arrMatch = clean.match(/\[[\s\S]*\]/);
@@ -428,7 +428,7 @@ ${safeIngredients.length > 0 ? 'Rules: use given ingredients as base; mark pantr
     console.log('[suggest] STAGE_6 parsing raw length=' + rawText.length);
     let meals = null;
     try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
+      const cleaned = rawText.replaceAll('```json', '').replaceAll('```', '').trim();
       const match = cleaned.match(/\[[\s\S]*\]/);
       if (match) meals = JSON.parse(match[0]);
     } catch (e) { console.error('[suggest/parse]', e?.message); return res.status(200).json({ ok: false, meals: [], error: 'Could not parse suggestions' }); }
