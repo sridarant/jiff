@@ -11,7 +11,7 @@ const en = {
   hero_eyebrow:    'Breakfast, lunch or dinner — sorted',
   hero_title1:     'What can I make',
   hero_title2:     'right now?',
-  hero_sub:        "Tell Jiff what you feel like. Get a meal you can cook right now."n a jiff.",
+  hero_sub:        "Tell Jiff what you feel like. Get a meal you can cook right now.",
 
   // Input labels
   label_ingredients: "What's in your fridge?",

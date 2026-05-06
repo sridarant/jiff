@@ -85,8 +85,8 @@ export default function Jiff() {
 
   // ── Business logic via hooks ───────────────────────────────────
   const {
-    meals, view, errorMsg, loadingMessage, factIdx, pantryNudge, ratings, tileContext,
-    setView, setErrorMsg, setFactIdx, setPantryNudge, setRatings, setTileContext,
+    meals, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
+    setView, setErrorMsg, setFactIdx, setRatings, setTileContext,
     handleSubmit, handleGenerateDirect, handleSurprise, handleRate,
     syncRatings, reset: resetRecipes,
   } = useRecipes({
@@ -183,7 +183,7 @@ export default function Jiff() {
 
   const reset = () => {
     resetRecipes(); setFridgeItems([]);
-    setPantryLoaded(true); setInputMode('direct');
+    setInputMode('direct');
     // Return to decision screen, not the fridge card
     setJourneyMode(true); setTileContext(null);
   };
@@ -230,7 +230,6 @@ export default function Jiff() {
           trialActive={trialActive} PAID_RECIPE_CAP={PAID_RECIPE_CAP}
           ratings={ratings} setRatings={setRatings}
           isFav={isFav} toggleFavourite={toggleFavourite} country={country}
-          pantryNudge={pantryNudge} setPantryNudge={setPantryNudge}
           CUISINE_OPTIONS={CUISINE_OPTIONS} tileContext={tileContext}
           stapleSuggestion={stapleSuggestion}
           onDismissStapleSuggestion={() => setStapleSuggestion(null)}
@@ -272,7 +271,7 @@ export default function Jiff() {
 
         <FridgeCard
           inputMode={inputMode} fridgeItems={fridgeItems} setFridgeItems={setFridgeItems}
-          pantry={pantry} diet={diet} setDiet={setDiet} time={time} setTime={setTime}
+          diet={diet} setDiet={setDiet} time={time} setTime={setTime}
           cuisine={cuisine} setCuisine={setCuisine}
           defaultServings={defaultServings} setDefaultServings={setDefaultServings}
           profile={profile} lang={lang} user={user}
@@ -281,7 +280,7 @@ export default function Jiff() {
           handleSubmit={() => {
             if (fridgeItems.length) {
               trackStapleUsage(fridgeItems);
-              const suggestions = getStapleSuggestions(pantryItems);
+              const suggestions = getStapleSuggestions([]);
               if (suggestions.length) setStapleSuggestion({ items: suggestions, shown: false });
             }
             handleSubmit(ingredients, () => setGateDismissed(false));

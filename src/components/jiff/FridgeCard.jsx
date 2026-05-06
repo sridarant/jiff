@@ -55,7 +55,7 @@ export default function FridgeCard({
 
   const quickAddItems = inputMode === 'leftover'
     ? LEFTOVER_CHIPS
-        : QUICK_ADD_STAPLES.filter(s => !fridgeItems.includes(s)));
+        : QUICK_ADD_STAPLES.filter(s => !fridgeItems.includes(s));
 
   const addItem = item => setFridgeItems(prev => [...new Set([...prev, item])]);
 

@@ -154,13 +154,9 @@ export default function Plans() {
 
   const [servings,     setServings]     = useState(2);
   const [generating,   setGenerating]   = useState(null);
-  const [pantryItems,  setPantryItems]  = useState([]);
-  const [pantryLoaded, setPantryLoaded] = useState(false);
 
   // Pre-fill pantry items from saved pantry
-  useEffect(() => {
-    if (!pantryLoaded && pantry?.length) { setPantryItems(pantry); setPantryLoaded(true); }
-  }, [pantry, pantryLoaded]);
+
   const [plan,         setPlan]         = useState(null);
   const [currentGoal,  setCurrentGoal]  = useState(null);
   const [errorMsg,     setErrorMsg]     = useState('');

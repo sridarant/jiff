@@ -123,11 +123,6 @@ export function useRecipes({
       recordUsage();
       handleStreak(user.id);
 
-      const used = (pantry || []).filter(p =>
-        data.meals[0]?.ingredients?.some(ing => ing.toLowerCase().includes(p.toLowerCase()))
-      );
-      if (used.length) setPantryNudge(used.slice(0, 4));
-
       saveHistory({
         userId: user.id, meals: data.meals,
         mealType, cuisine, servings: defaultServings, ingredients,
@@ -307,7 +302,7 @@ export function useRecipes({
     updateRating({ userId, mealName: meal.name, rating: stars });
   }, []);
 
-  const reset = useCallback((pantryData) => {
+  const reset = useCallback(() => {
     setView('input'); setMeals([]); setErrorMsg('');
   }, []);
 

@@ -197,12 +197,6 @@ export default function ResultsView({
         </div>
       )}
 
-      </strong>
-          </span>
-          <button onClick={() => setPantryNudge([])} style={{ background:'none', border:'none', color:'#9E9E9E', cursor:'pointer', fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>{'✕'}</button>
-        </div>
-      )}
-
       {/* Context banner */}
       {tileContext && (
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:14, marginBottom:20, background:tileContext.bg||'rgba(255,69,0,0.06)', border:'1px solid '+(tileContext.border||'rgba(255,69,0,0.18)') }}>
