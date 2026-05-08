@@ -97,7 +97,7 @@ function PrimaryCard({ emoji, label, effortMins, why, onCook, onNotThis, animKey
     : 'Worth the effort';
 
   return (
-    <div key={animKey} style={{ marginBottom:20, animation:'jiffFadeUp 0.2s ease' }}>
+    <div key={animKey} style={{ marginBottom:20, animation:'jiffFadeUp 0.2s ease', maxWidth:520, margin:'0 auto 20px' }}>
       <style>{`@keyframes jiffFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       <div style={{
@@ -283,6 +283,56 @@ function ContextTile({ tile, onClick }) {
       </div>
       <span style={{ fontSize:14, color:tile.color || C.jiff, flexShrink:0 }}>{'→'}</span>
     </button>
+  );
+}
+
+
+// ── InlineSkeleton — self-progressing, never static ──────────────
+const SKEL_PHRASES = {
+  mood:     ['Reading the vibe…',            'Narrowing it down…',         'Almost there…',             'Found it.'],
+  hosting:  ['Planning your table…',         'Finding the right courses…', 'Almost done…',              'Ready for your guests.'],
+  leftover: ['Working with what you have…',  'Turning it around…',         'Nearly there…',             'Got something.'],
+  kids:     ['Kid-friendly options…',        'Checking the spice level…',  'Almost ready…',             'Good to go.'],
+  surprise: ['Going off the beaten path…',   'Something unexpected…',      'Nearly there…',             'Here we go.'],
+  explore:  ['Looking at a few options…',    'Curating what fits…',        'Almost there…',             'Ready.'],
+  default:  ['Looking at your taste…',       'Finding something fitting…', 'Almost there…',             'Got something.'],
+};
+
+function InlineSkeleton({ source = 'default' }) {
+  const phrases = SKEL_PHRASES[source] || SKEL_PHRASES.default;
+  const [skelPhase, setSkelPhase] = useState(0);
+  useEffect(() => {
+    setSkelPhase(0);
+    const t1 = setTimeout(() => setSkelPhase(1), 2000);
+    const t2 = setTimeout(() => setSkelPhase(2), 4200);
+    const t3 = setTimeout(() => setSkelPhase(3), 6800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [source]);
+  const phrase = phrases[Math.min(skelPhase, phrases.length - 1)];
+  return (
+    <div style={{ marginBottom:20, maxWidth:520, margin:'0 auto 20px' }}>
+      <style>{`
+        @keyframes jiffSkel{0%,100%{opacity:.35}60%{opacity:.75}}
+        @keyframes jiffPhrFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+      `}</style>
+      <div style={{
+        background:'rgba(255,69,0,0.035)', border:'1.5px solid rgba(255,69,0,0.09)',
+        borderRadius:22, padding:'22px 20px',
+      }}>
+        <div style={{ display:'flex', gap:14, marginBottom:16 }}>
+          <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:'rgba(255,69,0,0.1)', animation:'jiffSkel 1.4s ease infinite' }}/>
+          <div style={{ flex:1 }}>
+            <div style={{ height:20, borderRadius:6, background:'rgba(28,10,0,0.07)', marginBottom:9, animation:'jiffSkel 1.4s ease infinite 0.1s' }}/>
+            <div style={{ height:11, borderRadius:6, background:'rgba(28,10,0,0.045)', width:'55%', animation:'jiffSkel 1.4s ease infinite 0.25s' }}/>
+          </div>
+        </div>
+        <div style={{ height:13, borderRadius:6, background:'rgba(28,10,0,0.045)', marginBottom:15, animation:'jiffSkel 1.4s ease infinite 0.15s' }}/>
+        <div style={{ height:46, borderRadius:13, background:'rgba(255,69,0,0.12)', animation:'jiffSkel 1.4s ease infinite 0.2s' }}/>
+        <div key={skelPhase} style={{ textAlign:'center', marginTop:12, fontFamily:F, fontSize:12, color:'rgba(28,10,0,0.4)', animation:'jiffPhrFade 0.35s ease' }}>
+          {phrase}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -504,29 +554,9 @@ export function JourneyTiles({
       </div>
 
       {/* TIER 1: Primary recommendation */}
-      {/* Inline loading state: calm skeleton overlays the primary slot */}
+      {/* Inline loading — progressing skeleton, never static */}
       {isLoadingRecommendation ? (
-        <div style={{ marginBottom:20, animation:'jiffFadeUp 0.2s ease' }}>
-          <div style={{
-            background:'rgba(255,69,0,0.04)', border:'1.5px solid rgba(255,69,0,0.1)',
-            borderRadius:20, padding:'20px 18px',
-          }}>
-            {/* Pulsing skeleton content */}
-            <style>{`@keyframes jiffSkel{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
-            <div style={{ display:'flex', gap:14, marginBottom:16 }}>
-              <div style={{ width:46, height:46, borderRadius:'50%', background:'rgba(255,69,0,0.12)', animation:'jiffSkel 1.2s ease infinite' }}/>
-              <div style={{ flex:1 }}>
-                <div style={{ height:20, borderRadius:6, background:'rgba(28,10,0,0.08)', marginBottom:8, animation:'jiffSkel 1.2s ease infinite' }}/>
-                <div style={{ height:11, borderRadius:6, background:'rgba(28,10,0,0.05)', width:'60%', animation:'jiffSkel 1.2s ease infinite 0.2s' }}/>
-              </div>
-            </div>
-            <div style={{ height:13, borderRadius:6, background:'rgba(28,10,0,0.05)', marginBottom:14, animation:'jiffSkel 1.2s ease infinite 0.1s' }}/>
-            <div style={{ height:46, borderRadius:13, background:'rgba(255,69,0,0.15)', animation:'jiffSkel 1.2s ease infinite 0.15s' }}/>
-            <div style={{ textAlign:'center', marginTop:10, fontSize:12, color:'rgba(28,10,0,0.35)', fontFamily:F }}>
-              {loadingMessage || 'Putting together your recommendation…'}
-            </div>
-          </div>
-        </div>
+        <InlineSkeleton source={loadingSource} />
       ) : primary ? (
         <PrimaryCard
           animKey={animKey}
