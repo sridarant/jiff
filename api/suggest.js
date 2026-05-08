@@ -127,6 +127,7 @@ module.exports = async function handler(req, res) {
     const time           = body.time || '30 min';
     const servings       = body.defaultServings || body.servings || 2;
     const count          = Math.min(Number(body.count) || 3, 5);
+    const exploreMode    = Boolean(body.exploreMode);  // lightweight summaries for explore flows
     const language       = body.language || 'en';
     const units          = body.units || 'metric';
     const tp             = (body.tasteProfile && typeof body.tasteProfile === 'object') ? body.tasteProfile : {};
@@ -215,6 +216,11 @@ module.exports = async function handler(req, res) {
       ? 'Available ingredients: ' + ingredients.join(', ') + '.'
       : 'No specific ingredients — generate based on cuisine, meal type, and preferences.';
 
+    // Explore mode: brief summaries only — full recipe generated on selection
+    const exploreLine = exploreMode && count > 1
+      ? 'IMPORTANT: This is an EXPLORE view. Keep each meal extremely brief: name, emoji, description (1 sentence), time only. Steps may be shortened to 2 key steps. User will request full recipe on selection.'
+      : '';
+
     const rulesLine = ingredients.length > 0
       ? 'Rules: use given ingredients as base; mark pantry staples with *; keep steps concise; each meal must be distinct.'
       : 'Rules: create authentic recipes for the cuisine and meal type; keep steps concise; each meal must be distinct.';
@@ -245,6 +251,7 @@ module.exports = async function handler(req, res) {
       '{"name":"string","emoji":"single emoji","time":"N min","servings":' + servings + ',"difficulty":"Easy|Moderate|Hard","description":"one sentence","ingredients":["qty unit item"],"steps":["imperative sentence"]}',
       '',
       rulesLine,
+      exploreLine,
     ].filter(Boolean);
     const prompt = userParts.join('\n');
 
@@ -259,7 +266,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-6',
-        max_tokens: 4096,                         // increased: 2500 caused truncation on 5 meals
+        max_tokens: exploreMode ? 1800 : (count >= 4 ? 4096 : 2500), // explore=lightweight, hosting=full
         system:     systemPrompt,                 // role + output contract in system turn
         messages:   [{ role: 'user', content: prompt }],
       }),

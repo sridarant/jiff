@@ -421,8 +421,8 @@ export function JourneyTiles({
       case 'mood':     setShowMood(true);  return;
       case 'fridge':   onSelectFridge && onSelectFridge(); return;
       case 'surprise': onGenerateDirect && onGenerateDirect({ surpriseMode:true }); return;
-      case 'kids':     onGenerateDirect && onGenerateDirect({ mealType:'lunch', kidsMode:true }); return;
-      case 'leftover': onGenerateDirect && onGenerateDirect({ mealType:'dinner', leftoverMode:true }); return;
+      case 'kids':     onGenerateDirect && onGenerateDirect({ mealType:'lunch', kidsMode:true, explore:true }); return;
+      case 'leftover': onGenerateDirect && onGenerateDirect({ mealType:'dinner', leftoverMode:true, explore:true }); return;
       case 'hosting':  onGenerateDirect && onGenerateDirect({ hosting:true, servings:8, mealType:'dinner' }); return;
       default:         loadCards(buildJourneyContext({ journeyType:'default', profile, mealHistory }));
     }
@@ -582,7 +582,7 @@ export function JourneyTiles({
               const jCtx = buildJourneyContext({ journeyType:'mood', mood:mood.id, profile, mealHistory });
               loadCards(jCtx);
             }
-            onGenerateDirect && onGenerateDirect({ mood:mood?.id, moodContext:context });
+            onGenerateDirect && onGenerateDirect({ mood:mood?.id, moodContext:context, explore:true });
           }}
           onClose={() => setShowMood(false)}
         />

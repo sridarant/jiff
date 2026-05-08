@@ -194,11 +194,13 @@ export function useRecipes({
     isGenerating.current = true;
     setView('loading'); setFactIdx(0); setJourneyMode(false);
     try {
-      // Architecture: 1 primary recommendation (recommendation-first, not list-generator)
-      // Exceptions: hosting = 4 (multi-course), leftover = 3 (effort-split variety)
-      const count = context.hosting         ? 4   // multi-course: starter, main, side, dessert
-                  : context.type === 'leftover' ? 3   // leftover: 2 quick + 1 creative
-                  : 1;                               // all other flows: ONE primary recommendation
+      // Architecture: recommendation-first with intentional exploration support
+      //   Primary/surprise/swap/fridge → count:1 (decisive, single recommendation)
+      //   Explore flows (mood/kids/leftover) → count:3 (curated lightweight options)
+      //   Hosting → count:4 (multi-course: starter, main, side, dessert)
+      const count = context.hosting          ? 4   // multi-course
+                  : context.explore          ? 3   // intentional exploration: 2–3 curated
+                  : 1;                             // decisive default: ONE recommendation
 
       // Build a dish hint for hosting (multi-course) or leftover (effort-split)
       const dishHint = context.hosting
@@ -217,6 +219,7 @@ export function useRecipes({
         ingredients: tileIngredients,
         count,
         dish:        dishHint || context.dish || null,
+        exploreMode: context.explore || false,   // lightweight payloads for explore flows
         moodContext: context.moodContext || null,
       });
 
