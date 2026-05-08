@@ -45,12 +45,12 @@ function isHostingContext(tileContext) {
 }
 
 // ── Section label ─────────────────────────────────────────────────
-const SL = ({ emoji, title, sub, color = '#FF4500' }) => (
-  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:20, marginBottom:10 }}>
-    <span style={{ fontSize:18 }}>{emoji}</span>
+const SL = ({ emoji, title, sub, color = '#FF4500', compact = false }) => (
+  <div style={{ display:'flex', alignItems:'center', gap:compact?5:8, marginTop:compact?8:20, marginBottom:compact?6:10 }}>
+    <span style={{ fontSize:compact?14:18 }}>{emoji}</span>
     <div>
-      <div style={{ fontSize:12, fontWeight:700, color, letterSpacing:'0.3px' }}>{title}</div>
-      {sub && <div style={{ fontSize:10, color:'#7C6A5E', marginTop:1 }}>{sub}</div>}
+      <div style={{ fontSize:compact?10:12, fontWeight:700, color, letterSpacing:'0.3px' }}>{title}</div>
+      {!compact && sub && <div style={{ fontSize:10, color:'#7C6A5E', marginTop:1 }}>{sub}</div>}
     </div>
   </div>
 );
@@ -296,21 +296,39 @@ export default function ResultsView({
 
       {/* ── HOSTING MODE: Starter / Main / Side / Dessert ────── */}
       {isHosting && hostingGroups && (
-        <>
-          {(['starter','main','side','dessert']).map(course => {
-            const courseMeals = hostingGroups[course];
-            if (!courseMeals || courseMeals.length === 0) return null;
-            const cfg = COURSE_CONFIG[course];
-            return (
-              <div key={course}>
-                <SL emoji={cfg.emoji} title={cfg.title} color={cfg.color} />
-                <div className="meals-grid">
-                  {courseMeals.map((meal, i) => renderMealCard(meal, i))}
-                </div>
-              </div>
-            );
-          })}
-        </>
+        <div>
+          {/* Hosting: side-by-side rhythm — starter+side paired, main+dessert full */}
+          {/* Row 1: Starter (left) + Side (right) */}
+          {(hostingGroups.starter?.length || hostingGroups.side?.length) && (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+              {['starter','side'].map(course => {
+                const courseMeals = hostingGroups[course];
+                const cfg = COURSE_CONFIG[course];
+                if (!courseMeals?.length) return <div key={course} />;
+                return (
+                  <div key={course}>
+                    <SL emoji={cfg.emoji} title={cfg.title} color={cfg.color} compact />
+                    {courseMeals.map((meal, i) => renderMealCard(meal, i))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Row 2: Main — full width, dominant */}
+          {hostingGroups.main?.length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <SL emoji={COURSE_CONFIG.main.emoji} title={COURSE_CONFIG.main.title} color={COURSE_CONFIG.main.color} />
+              {hostingGroups.main.map((meal, i) => renderMealCard(meal, i))}
+            </div>
+          )}
+          {/* Row 3: Dessert — full width, light */}
+          {hostingGroups.dessert?.length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <SL emoji={COURSE_CONFIG.dessert.emoji} title={COURSE_CONFIG.dessert.title} color={COURSE_CONFIG.dessert.color} />
+              {hostingGroups.dessert.map((meal, i) => renderMealCard(meal, i))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── DEFAULT MODE: standard grid ───────────────────────── */}

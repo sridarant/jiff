@@ -196,9 +196,8 @@ export default function Jiff() {
   const renderView = () => {
     if (view === 'loading') return (
       <LoadingView
-        cuisine={cuisine} mealType={mealType} ingredients={ingredients}
-        isPremium={isPremium} PAID_RECIPE_CAP={PAID_RECIPE_CAP}
-        factIdx={factIdx} loadingMessage={loadingMessage}
+        loadingMessage={loadingMessage}
+        source={tileContext?.source || 'default'}
       />
     );
 

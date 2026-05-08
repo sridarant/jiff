@@ -10,18 +10,18 @@ import { updateStreak, computeNextStreak } from '../services/userService';
 import { getRecentSuccessBoostMap } from './useRetention.js';
 
 const TILE_MSGS = {
-  magic_moment: 'Your first personalised recipe is on its way…',
-  family:   'Planning for the whole family... 👨‍👩‍👧',
-  hosting:  'Preparing an impressive spread... 🎉',
-  mood:     'Finding something that matches your vibe... 😊',
-  seasonal: "Pulling in what's fresh right now... 🌿",
-  weather:  "Picking recipes for today's weather... 🌤️",
-  goal:     'Finding recipes that work for your goal... 🎯',
-  discover: 'Getting that recipe ready... ⚡',
-  planner:  'Building your 7-day menu... 📅',
-  trending: 'Grabbing a trending recipe... 🔥',
-  regional: "Exploring this week's region... 🌍",
-  festival: 'Bringing in the festival flavours... 🎉',
+  magic_moment: 'Your first recommendation is on its way…',
+  family:       'Planning for everyone…',
+  hosting:      'Planning your table…',
+  mood:         'Reading the vibe…',
+  seasonal:     "Something fresh for this time of year…",
+  weather:      "Finding what fits today's weather…",
+  goal:         'Something that works for your goal…',
+  discover:     'Putting together your recommendation…',
+  planner:      'Building your week…',
+  trending:     'Something popular right now…',
+  regional:     'Exploring this region…',
+  festival:     'Bringing in the season…',
 };
 
 export function useRecipes({
@@ -37,7 +37,7 @@ export function useRecipes({
   const [meals,          setMeals]          = useState([]);
   const [view,           setView]           = useState('input');
   const [errorMsg,       setErrorMsg]       = useState('');
-  const [loadingMessage, setLoadingMessage] = useState('Finding your perfect recipes...');
+  const [loadingMessage, setLoadingMessage] = useState('Putting together your recommendation…');
   const [factIdx,        setFactIdx]        = useState(0);
   const [tileContext,    setTileContext]    = useState(null); // { type, label, emoji, color, bg }
 
@@ -102,7 +102,7 @@ export function useRecipes({
     isGenerating.current = true;
 
     setView('loading'); setFactIdx(0);
-    setLoadingMessage('Finding your perfect recipes...');
+    setLoadingMessage('Putting together your recommendation…');
     try {
       const count = 1; // fridge flow: 1 primary recommendation
       const data  = await generateRecipes({
@@ -189,7 +189,7 @@ export function useRecipes({
       : context.seasonal ? 'seasonal'
       : context.type === 'festival' ? 'festival'
       : context.type === 'leftover' ? 'leftover' : null;
-    setTileContext(ctxType ? CTX_MAP[ctxType] : null);
+    setTileContext(ctxType ? { ...CTX_MAP[ctxType], source: ctxType } : null);
     if (isGenerating.current) return false;
     isGenerating.current = true;
     setView('loading'); setFactIdx(0); setJourneyMode(false);
@@ -269,7 +269,7 @@ export function useRecipes({
   const handleSurprise = useCallback(async (season) => {
     if (!checkAccess('generation')) return;
     setView('loading'); setFactIdx(0);
-    setLoadingMessage('Finding something you\'ll love...');
+    setLoadingMessage('Finding something you\'ll enjoy…');
     try {
       const count = 1; // surprise: one decisive recommendation
       const surpriseCuisine = profile?.preferred_cuisines?.length

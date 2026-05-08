@@ -1,63 +1,75 @@
-// src/components/jiff/LoadingView.jsx
-// Smart loader with short, human context-aware messages.
-// All messages under 35 chars. Smooth 3-dot animation.
+// src/components/jiff/LoadingView.jsx — v23.47
+// Context-aware loader: calm, human, never computational.
+// No count wording. No AI-generation language.
+// Phase-based message evolution with smooth breathing animation.
 
 import { useState, useEffect } from 'react';
 
+// Messages are calm, decisive, warm — under 36 chars each
+// Each set has 4 phases (0.8s apart) — last phrase is the "almost there" reassurance
 const MSG_SETS = {
-  mood:     ['Reading the mood…',        'Finding your vibe…',       'Almost there…',            'Got something good…'],
-  hosting:  ['Impressing the guests…',   'Finding a showstopper…',   'Nearly there…',            'Got something good…'],
-  leftover: ['Using what you have…',     'Rescuing the fridge…',     'Almost done…',             'Found it…'],
-  kids:     ['Kid-friendly options…',    'Checking the spice…',      'Almost ready…',            'Good to go…'],
-  surprise: ['Something unexpected…',    'Off the beaten path…',     'You won\'t expect this…',  'Here we go…'],
-  default:  ['Looking at your taste…',   'Finding something quick…', 'Balancing effort…',        'Got something good…'],
+  mood:     ['Reading the vibe…',         'Something good is coming…',  'Almost there…',          'Found it.'],
+  hosting:  ['Planning your table…',      'Finding a showstopper…',     'Nearly done…',           'Ready for your guests.'],
+  leftover: ['Making the most of it…',    'Turning leftovers around…',  'Almost done…',           'Found something good.'],
+  kids:     ['Kid-friendly options…',     'Checking it over…',          'Almost there…',          'Good to go.'],
+  surprise: ['Going off the beaten path…','You won\'t expect this…',   'Nearly there…',          'Here we go.'],
+  explore:  ['Looking at a few options…', 'Curating what fits…',        'Almost there…',          'Here are some ideas.'],
+  default:  ['Looking at your taste…',    'Finding something fitting…', 'Almost there…',          'Got something.'],
 };
 
-function getMsgs(source) {
-  return MSG_SETS[source] || MSG_SETS.default;
-}
-
-export default function LoadingView({ isPremium, PAID_RECIPE_CAP, loadingMessage, source }) {
-  const msgs = getMsgs(source);
+export default function LoadingView({ loadingMessage, source }) {
+  const msgs  = MSG_SETS[source] || MSG_SETS.default;
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     setPhase(0);
-    const t1 = setTimeout(() => setPhase(1), 800);
-    const t2 = setTimeout(() => setPhase(2), 1700);
-    const t3 = setTimeout(() => setPhase(3), 2800);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [loadingMessage, source]);
+    const timers = [
+      setTimeout(() => setPhase(1), 900),
+      setTimeout(() => setPhase(2), 1900),
+      setTimeout(() => setPhase(3), 3100),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [source, loadingMessage]);
 
   const msg = loadingMessage || msgs[Math.min(phase, msgs.length - 1)];
 
   return (
-    <div style={{ textAlign:'center', padding:'56px 24px 40px', maxWidth:440, margin:'0 auto', fontFamily:"'DM Sans',sans-serif" }}>
-      {/* 3-dot pulse */}
-      <div style={{ display:'flex', justifyContent:'center', gap:10, marginBottom:36 }}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{
-            width:11, height:11, borderRadius:'50%',
-            background: i === phase % 3 ? '#FF4500' : 'rgba(255,69,0,0.18)',
-            transform:  i === phase % 3 ? 'scale(1.45)' : 'scale(1)',
-            transition: 'background 0.25s, transform 0.25s',
-          }} />
-        ))}
+    <div style={{
+      textAlign: 'center', padding: '64px 24px 48px',
+      maxWidth: 400, margin: '0 auto',
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      {/* Breathing dots — 3 dots, calm sequential fade */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 40 }}>
+        {[0, 1, 2].map(i => {
+          const active = i === phase % 3;
+          return (
+            <div key={i} style={{
+              width: 9, height: 9, borderRadius: '50%',
+              background: active ? '#FF4500' : 'rgba(255,69,0,0.15)',
+              transform:  active ? 'scale(1.5)' : 'scale(1)',
+              transition: 'background 0.3s ease, transform 0.3s ease',
+            }} />
+          );
+        })}
       </div>
 
-      {/* Message */}
-      <div style={{ fontFamily:"'Fraunces',serif", fontSize:'clamp(19px,3.5vw,24px)', fontWeight:900, color:'var(--ink,#1C0A00)', letterSpacing:'-0.4px', marginBottom:8, minHeight:32 }}>
+      {/* Primary message — Fraunces, confident */}
+      <div style={{
+        fontFamily: "'Fraunces', serif",
+        fontSize: 'clamp(18px, 3.5vw, 23px)',
+        fontWeight: 900, letterSpacing: '-0.3px',
+        color: '#1C0A00', marginBottom: 8, minHeight: 30,
+        transition: 'opacity 0.3s ease',
+        opacity: phase >= 0 ? 1 : 0,
+      }}>
         {msg}
       </div>
-      <div style={{ fontSize:12, color:'var(--muted,#7C6A5E)', fontWeight:300 }}>
-        {phase < 2 ? 'Checking your preferences…' : 'Almost ready…'}
-      </div>
 
-      {isPremium && (
-        <div style={{ marginTop:20, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,69,0,0.07)', borderRadius:20, padding:'4px 14px', fontSize:11, color:'var(--jiff,#FF4500)', fontWeight:500 }}>
-          {'⚡ Generating '}{PAID_RECIPE_CAP}{' recipes'}
-        </div>
-      )}
+      {/* Sub — calm reassurance, never technical */}
+      <div style={{ fontSize: 12, color: '#7C6A5E', fontWeight: 300 }}>
+        {phase < 2 ? 'Won\'t be long…' : 'Almost ready for you…'}
+      </div>
     </div>
   );
 }

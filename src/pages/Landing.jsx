@@ -116,7 +116,7 @@ export default function Landing() {
           justifyContent: 'center', flexWrap: 'wrap',
           marginTop: 32,
         }}>
-          {['No account needed', 'Ready in seconds', 'Works on any device'].map((t, i) => (
+          {['Decides for you, instantly', 'Learns your taste over time', 'Calm, not a recipe list'].map((t, i) => (
             <span key={i} style={{
               fontSize: 12, color: C.muted,
               display: 'flex', alignItems: 'center', gap: 5,
