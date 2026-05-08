@@ -32,14 +32,29 @@ function extractJSON(text, type) {
   if (!text) return null;
   const open  = type === 'array' ? '[' : '{';
   const close = type === 'array' ? ']' : '}';
-  const start = text.indexOf(open);
-  const end   = text.lastIndexOf(close);
-  if (start === -1 || end === -1 || end <= start) return null;
-  try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
+
+  // Strategy 1: first open bracket to last close bracket (standard case)
+  const start1 = text.indexOf(open);
+  const end1   = text.lastIndexOf(close);
+  if (start1 !== -1 && end1 > start1) {
+    try { return JSON.parse(text.slice(start1, end1 + 1)); } catch {}
   }
+
+  // Strategy 2: try parsing the full text directly (AI sometimes returns pure JSON)
+  try { const p = JSON.parse(text.trim()); if (p) return p; } catch {}
+
+  // Strategy 3: find JSON by scanning for the pattern more aggressively
+  // Handles cases where AI adds trailing commas or minor syntax issues
+  const match = text.match(type === 'array' ? /\[[\s\S]*\]/ : /\{[\s\S]*\}/);
+  if (match) {
+    // Light cleanup: trailing commas before ] or }
+    const cleaned = match[0]
+      .replace(/,(\s*[}\]])/g, '$1')   // trailing commas
+      .replace(/:\s*undefined/g, ':null'); // undefined values
+    try { return JSON.parse(cleaned); } catch {}
+  }
+
+  return null;
 }
 
 // ── Token logger (fire-and-forget) ────────────────────────────────

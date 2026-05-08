@@ -83,7 +83,10 @@ export function normalizeResponse(data) {
   if (Array.isArray(data))              raw = data;
   else if (Array.isArray(data.meals))   raw = data.meals;
   else if (data.meals?.meals)           raw = data.meals.meals;
-  return raw.map(normalizeRecipe).filter(Boolean);
+  // Filter: reject normalised meals with no meaningful name or no ingredients
+  return raw.map(normalizeRecipe).filter(m =>
+    m && m.name && m.name !== 'Unnamed dish' && m.name.trim().length > 1
+  );
 }
 
 /**

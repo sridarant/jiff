@@ -221,13 +221,20 @@ export function useRecipes({
       });
 
       if (data.error) {
-        setErrorMsg(data.error);
+        const isParseErr = data.stage === 'parse' || (data.error && data.error.toLowerCase().includes('parse'));
+        setErrorMsg(isParseErr ? 'Taking a moment — please try again.' : (data.error || 'Could not generate suggestions.'));
         setView('input');
         setJourneyMode(true);
         return false;
       }
 
       const resultMeals = normalizeResponse(data);
+      if (!resultMeals.length) {
+        setErrorMsg('Taking a moment — please try again.');
+        setView('input');
+        setJourneyMode(true);
+        return false;
+      }
       setMeals(resultMeals);
       handleStreak(user.id);
       saveHistory({ userId: user.id, meals: resultMeals, mealType, cuisine, servings: defaultServings, ingredients: tileIngredients });
