@@ -104,7 +104,7 @@ export function useRecipes({
     setView('loading'); setFactIdx(0);
     setLoadingMessage('Finding your perfect recipes...');
     try {
-      const count = isPremium ? PAID_RECIPE_CAP : 1;
+      const count = 1; // fridge flow: 1 primary recommendation
       const data  = await generateRecipes({
         ...buildBaseParams({ mealType, cuisine }),
         ingredients,
@@ -194,11 +194,11 @@ export function useRecipes({
     isGenerating.current = true;
     setView('loading'); setFactIdx(0); setJourneyMode(false);
     try {
-      // Leftover: always show 3-5 options split by effort; hosting: full-menu count
-      const baseCount = isPremium ? PAID_RECIPE_CAP : 1;
-      const count = context.type === 'leftover' ? Math.max(3, baseCount)
-                  : context.hosting            ? Math.max(4, baseCount)
-                  : baseCount;
+      // Architecture: 1 primary recommendation (recommendation-first, not list-generator)
+      // Exceptions: hosting = 4 (multi-course), leftover = 3 (effort-split variety)
+      const count = context.hosting         ? 4   // multi-course: starter, main, side, dessert
+                  : context.type === 'leftover' ? 3   // leftover: 2 quick + 1 creative
+                  : 1;                               // all other flows: ONE primary recommendation
 
       // Build a dish hint for hosting (multi-course) or leftover (effort-split)
       const dishHint = context.hosting
@@ -268,7 +268,7 @@ export function useRecipes({
     setView('loading'); setFactIdx(0);
     setLoadingMessage('Finding something you\'ll love...');
     try {
-      const count = isPremium ? PAID_RECIPE_CAP : 1;
+      const count = 1; // surprise: one decisive recommendation
       const surpriseCuisine = profile?.preferred_cuisines?.length
         ? profile.preferred_cuisines[Math.floor(Math.random() * profile.preferred_cuisines.length)]
         : 'any';

@@ -214,10 +214,10 @@ export default function ResultsView({
             ? '🎉 Full Meal Plan for your guests'
             : isLeftover
             ? '♻️ Rescued! Here\'s what to make.'
-            : 'Jiffed. ⚡ Here\'s your menu.'}
+            : 'Done. Here\'s your recommendation.'}
         </div>
         <div className="results-sub">
-          {'Tap ♥ to save · expand for full recipe + timers · adjust servings inside'}
+          {'Expand to see the full recipe'}
           {profile && (
             <span style={{ color:'var(--jiff)', fontWeight:500 }}>
               {' · personalised for '}{profile.name?.split(' ')[0]}
@@ -226,7 +226,7 @@ export default function ResultsView({
         </div>
       </div>
 
-      <div className="filter-pills">
+      {meals.length > 1 && <div className="filter-pills">
         {mealType && mealType !== 'any' && (
           <span className="filter-pill">
             {(MEAL_TYPE_OPTIONS.find(m => m.id === mealType)?.emoji || '🍽️') + ' ' + mealType}
@@ -238,7 +238,7 @@ export default function ResultsView({
         {time && <span className="filter-pill">{'⏱ ' + time}</span>}
         {diet && diet !== 'none' && <span className="filter-pill">{'🥗 ' + diet}</span>}
         <span className="filter-pill">{'👥 ' + defaultServings + (defaultServings !== 1 ? ' servings' : ' serving')}</span>
-      </div>
+      </div>}
 
       {false && !isPremium && trialActive && ( /* trial banner suppressed while PAYWALL_ENABLED=false */
         <div style={{ background:'rgba(255,184,0,0.08)', border:'1px solid rgba(255,184,0,0.25)', borderRadius:12, padding:'10px 16px', marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
