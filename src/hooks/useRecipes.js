@@ -220,15 +220,24 @@ export function useRecipes({
         moodContext: context.moodContext || null,
       });
 
-      if (data.error) {
-        const isParseErr = data.stage === 'parse' || (data.error && data.error.toLowerCase().includes('parse'));
-        setErrorMsg(isParseErr ? 'Taking a moment — please try again.' : (data.error || 'Could not generate suggestions.'));
+      // Step 6: Invisible recovery — on parse/validation failure, retry once silently
+      const isSoftFail = !data?.ok && ['parse','validation'].includes(data?.stage);
+      if ((data.error && !isSoftFail) ) {
+        setErrorMsg(data.error || 'Could not generate suggestions.');
         setView('input');
         setJourneyMode(true);
         return false;
       }
 
-      const resultMeals = normalizeResponse(data);
+      let resultMeals = normalizeResponse(data);
+
+      // Silent retry on empty/parse failure — one automatic retry, invisible to user
+      if (!resultMeals.length && isSoftFail) {
+        console.warn('[useRecipes] Silent retry triggered. Stage:', data?.stage);
+        const retryData = await generateRecipes(buildBaseParams({ cuisine: context.cuisine, mealType: context.mealType }));
+        resultMeals = normalizeResponse(retryData);
+      }
+
       if (!resultMeals.length) {
         setErrorMsg('Taking a moment — please try again.');
         setView('input');

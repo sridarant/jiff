@@ -219,57 +219,48 @@ module.exports = async function handler(req, res) {
       ? 'Rules: use given ingredients as base; mark pantry staples with *; keep steps concise; each meal must be distinct.'
       : 'Rules: create authentic recipes for the cuisine and meal type; keep steps concise; each meal must be distinct.';
 
-    // Build prompt — no template literal with backticks inside the string itself
-    // Steps 3+7: zero markdown-fence patterns in any string used to parse responses
-    const promptParts = [
-      'You are a creative, practical chef with deep knowledge of world cuisines.',
-      '',
+    // SYSTEM prompt: role + output contract (never changes per request)
+    // Separated from USER prompt to give Claude clear role/format boundaries
+    const systemPrompt = [
+      'You are a practical home-cooking chef. You specialise in quick, delicious meals that real families cook.',
+      'You respond ONLY with valid JSON arrays. No prose, no markdown, no explanation before or after the JSON.',
+      'Every response must be a complete, parseable JSON array starting with [ and ending with ].',
+      'Each meal object must contain: name, emoji, time, servings, difficulty, description, ingredients, steps.',
+      'name must be a non-empty string. ingredients must be a non-empty array. steps must be a non-empty array.',
+    ].join(' ');
+
+    // USER prompt: request context (changes per request)
+    const userParts = [
       ingrLine,
-      'Time available: ' + time + '.',
-      'Dietary preference: ' + effectiveDiet + '. ' + dietRule,
-      'Meal type: ' + mealTypeRule,
-      'Cuisine requirement: ' + cuisineRule,
-      'Serving size: Each recipe should serve ' + servings + ' people.',
-      'Measurements: ' + unitsRule,
-      contextLine,
-      langRule,
-      profileBlock,
+      'Time available: ' + time + '. Meal type: ' + mealType + '.',
+      'Diet: ' + effectiveDiet + (dietRule ? ' — ' + dietRule : '') + '.',
+      cuisineRule,
+      'Serves: ' + servings + '. ' + unitsRule,
+      contextLine || '',
+      langRule || '',
+      profileBlock || '',
       '',
-      'Suggest exactly ' + count + ' meal' + (count > 1 ? 's' : '') + '. Respond ONLY with a valid JSON array — no markdown, no explanation:',
-      '',
-      '[',
-      '  {',
-      '    "name": "Meal Name",',
-      '    "emoji": "...",',
-      '    "time": "25 min",',
-      '    "servings": ' + servings + ',',
-      '    "difficulty": "Easy",',
-      '    "description": "One enticing sentence.",',
-      '    "ingredients": ["200g pasta", "2 cloves garlic"],',
-      '    "steps": ["Step 1", "Step 2"],',
-      '    "calories": "420",',
-      '    "protein": "18g",',
-      '    "carbs": "52g",',
-      '    "fat": "14g"',
-      '  }',
-      ']',
+      'Return EXACTLY ' + count + ' meal object' + (count > 1 ? 's' : '') + ' as a JSON array.',
+      'Schema for each object:',
+      '{"name":"string","emoji":"single emoji","time":"N min","servings":' + servings + ',"difficulty":"Easy|Moderate|Hard","description":"one sentence","ingredients":["qty unit item"],"steps":["imperative sentence"]}',
       '',
       rulesLine,
-    ];
-    const prompt = promptParts.filter(l => l !== null).join('\n');
+    ].filter(Boolean);
+    const prompt = userParts.join('\n');
 
     console.log('[suggest] ANTHROPIC_REQUEST count=' + count + ' diet=' + effectiveDiet + ' cuisine=' + (cuisineLabel || 'any') + ' apiKey_exists=' + Boolean(apiKey));
 
     const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type':         'application/json',
-        'x-api-key':            apiKey,
-        'anthropic-version':    '2023-06-01',
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-6',
-        max_tokens: 2500,
+        max_tokens: 4096,                         // increased: 2500 caused truncation on 5 meals
+        system:     systemPrompt,                 // role + output contract in system turn
         messages:   [{ role: 'user', content: prompt }],
       }),
     });
@@ -293,12 +284,32 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: false, meals: [], error: 'Could not parse meal suggestions', stage: 'parse', debugVersion: DEBUG_VERSION });
     }
 
+    // Step 5: Validate + repair each meal before returning
+    // Removes meals that are structurally unusable
+    const validated = meals.filter(m => {
+      if (!m || typeof m !== 'object') return false;
+      if (!m.name || typeof m.name !== 'string' || !m.name.trim()) return false;
+      // Ensure arrays are arrays
+      if (!Array.isArray(m.ingredients)) m.ingredients = [];
+      if (!Array.isArray(m.steps))       m.steps = Array.isArray(m.method) ? m.method : [];
+      // Ensure emoji exists
+      if (!m.emoji) m.emoji = '🍽️';
+      // Ensure time exists
+      if (!m.time)  m.time  = '30 min';
+      return true;
+    });
+
+    if (validated.length === 0) {
+      console.error('[suggest] VALIDATION_EMPTY raw meals=' + meals.length);
+      return res.status(200).json({ ok: false, meals: [], error: 'Could not generate valid meals', stage: 'validation', debugVersion: DEBUG_VERSION });
+    }
+
     // Token logging — fire-and-forget
     const usage = aiData.usage || {};
     logTokens(usage.input_tokens, usage.output_tokens);
 
-    console.log('[suggest] SUCCESS meals=' + meals.length);
-    return res.status(200).json({ ok: true, meals: meals, debugVersion: DEBUG_VERSION });
+    console.log('[suggest] SUCCESS meals=' + validated.length + ' (raw=' + meals.length + ')');
+    return res.status(200).json({ ok: true, meals: validated, debugVersion: DEBUG_VERSION });
 
   } catch (err) {
     console.error('[suggest] FATAL error=' + (err && err.message || String(err)));
