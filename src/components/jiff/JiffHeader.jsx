@@ -27,65 +27,6 @@ export default function JiffHeader({
       />
 
       <div className="header-right">
-        {trialActive && (
-          <div className="trial-badge">{'⏳ '}{trialDaysLeft}{'d'}</div>
-        )}
-
-        {user && (
-          <div style={{ position:'relative' }}>
-            <button className="notif-btn" aria-label="Notifications"
-              onClick={() => { setShowNotifications(p => !p); if (showNotifications) markAllRead(); }}>
-              {'🔔'}
-              {unreadCount > 0 && (
-                <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
-              )}
-            </button>
-
-            {showNotifications && (
-              <>
-                <div onClick={() => { setShowNotifications(false); markAllRead(); }}
-                  style={{ position:'fixed', inset:0, zIndex:199 }} aria-hidden="true"/>
-                <div className="notif-panel">
-                  <div className="notif-header">
-                    <span style={{ fontFamily:"'Fraunces',serif", fontSize:14, fontWeight:700, color:'var(--ink)' }}>{'Notifications'}</span>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto' }}>
-                      {unreadCount > 0 && (
-                        <button onClick={markAllRead}
-                          style={{ background:'none', border:'none', fontSize:11, color:'var(--jiff)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:500 }}>
-                          {'Mark all read'}
-                        </button>
-                      )}
-                      <button onClick={() => { setShowNotifications(false); markAllRead(); }}
-                        style={{ background:'none', border:'none', fontSize:16, cursor:'pointer', color:'rgba(28,10,0,0.35)', padding:'0 2px', lineHeight:1 }}>
-                        {'✕'}
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ maxHeight:380, overflowY:'auto' }}>
-                    {notifications.length === 0 ? (
-                      <div className="notif-empty">
-                        <div style={{ fontSize:28, marginBottom:8 }}>{'🔔'}</div>
-                        {'No notifications yet'}
-                      </div>
-                    ) : notifications.map(n => (
-                      <div key={n.id} className={'notif-item ' + (n.read ? '' : 'unread')}>
-                        <span style={{ fontSize:20, lineHeight:1, marginTop:2, flexShrink:0 }}>{n.icon}</span>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, marginBottom:2 }}>
-                            <span style={{ fontSize:12, fontWeight:n.read?400:600, color:'var(--ink)' }}>{n.title}</span>
-                            {!n.read && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--jiff)', flexShrink:0 }}/>}
-                          </div>
-                          <p style={{ fontSize:11, color:'var(--muted)', fontWeight:300, lineHeight:1.5, margin:0 }}>{n.body}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
         {user && (
           <div style={{ position:'relative' }}>
             <button onClick={() => setShowUserMenu(p => !p)} aria-label="Profile menu"

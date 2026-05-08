@@ -15,7 +15,6 @@ import { useLocale, getCurrentSeason } from '../contexts/LocaleContext';
 import { useRecipes }       from '../hooks/useRecipes';
 import { useRetention }     from '../hooks/useRetention';
 import { useNotifications } from '../hooks/useNotifications';
-import SmartGreeting    from '../components/SmartGreeting';
 import { JourneyTiles } from '../components/common/JourneyTiles.jsx';
 import AuthGate         from '../components/jiff/AuthGate';
 import JiffHeader       from '../components/jiff/JiffHeader';
@@ -331,19 +330,7 @@ export default function Jiff() {
           </div>
         )}
 
-        {/* Decision screen — shown first for all logged-in users */}
-        {/* Profile-incomplete nudge — shown once until preferences set */}
-        {journeyMode && user && view === 'input' && profile && !(profile.preferred_cuisines?.length) && !(profile.food_type?.length) && (
-          <div style={{ margin:'0 12px 8px', padding:'9px 14px', borderRadius:11, background:'rgba(255,69,0,0.05)', border:'1px solid rgba(255,69,0,0.15)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, fontFamily:"'DM Sans',sans-serif" }}>
-            <span style={{ fontSize:12, color:'#7C6A5E', fontWeight:400, lineHeight:1.4, flex:1 }}>
-              {'Set your preferences to get better meal suggestions'}
-            </span>
-            <button onClick={() => navigate('/profile')}
-              style={{ flexShrink:0, padding:'5px 12px', borderRadius:8, background:'#FF4500', color:'white', border:'none', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", whiteSpace:'nowrap' }}>
-              {'Set up →'}
-            </button>
-          </div>
-        )}
+        {/* Profile nudge handled by JourneyTiles via showPrefNudge prop */}
 
         {journeyMode && user && view === 'input' && (
           <JourneyTiles
@@ -368,7 +355,6 @@ export default function Jiff() {
             onSelectFridge={() => { setJourneyMode(false); setInputMode('fridge'); }}
             onGenerateDirect={handleGenerateDirect}
             onLeftoverRescue={handleLeftoverRescue}
-            onWeatherGenerate={(ctx) => handleGenerateDirect({ weather:ctx?.weather, type:'weather', mealType:'any' })}
           />
         )}
 

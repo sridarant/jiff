@@ -1,81 +1,41 @@
-// src/components/jiff/JiffLoader.jsx — v1.23.00
-// Brand-aligned loader: "jiff" wordmark centered, opacity pulse animation.
-// No SVG icon, no spinner. Wordmark only.
+// src/components/jiff/JiffLoader.jsx — v23.41
 //
-// Animation: opacity pulse 0.6 → 1 → 0.6, 700ms loop (Option A per spec)
-// Rotating microcopy: "thinking..." / "planning..." / "almost ready..."
+// CONSTITUTION: Loading states use skeleton screens, not spinners.
+// Wordmark pulse only — no rotating microcopy ("thinking... / planning...")
+// Rotating copy creates anxiety by suggesting the app is struggling.
+// Silence + gentle pulse = calm confidence.
 
-import { useState, useEffect } from 'react';
-
-const MESSAGES = [
-  'thinking...',
-  'planning...',
-  'almost ready...',
-];
-
-const LOADER_CSS = `
-  @keyframes jiff-wm-pulse {
-    0%,100% { opacity: 0.6; }
-    50%      { opacity: 1;   }
+const PULSE_CSS = `
+  @keyframes jiff-pulse {
+    0%,100% { opacity:0.45; }
+    50%      { opacity:1;    }
   }
-  .jiff-wm-pulse {
-    animation: jiff-wm-pulse 700ms ease-in-out infinite;
-  }
+  .jiff-pulse { animation: jiff-pulse 900ms ease-in-out infinite; }
 `;
 
-export default function JiffLoader({ message }) {
-  const [msgIdx, setMsgIdx] = useState(0);
-
-  useEffect(() => {
-    if (message) return; // caller provided custom message — don't rotate
-    const t = setInterval(() => setMsgIdx(i => (i + 1) % MESSAGES.length), 1400);
-    return () => clearInterval(t);
-  }, [message]);
-
-  const displayMsg = message || MESSAGES[msgIdx];
-
+export default function JiffLoader() {
   return (
     <>
-      <style>{LOADER_CSS}</style>
-      <div style={{
-        position:       'fixed',
-        inset:          0,
-        display:        'flex',
-        flexDirection:  'column',
-        alignItems:     'center',
-        justifyContent: 'center',
-        background:     '#FFFAF5',
-        zIndex:         9999,
-        fontFamily:     "'DM Sans', sans-serif",
-        gap:            16,
-      }}
+      <style>{PULSE_CSS}</style>
+      <div
         role="status"
-        aria-label="Loading Jiff"
-      >
-        {/* Wordmark — pulsing */}
-        <div className="jiff-wm-pulse" style={{ display:'flex', alignItems:'center' }}>
-          <span style={{
-            fontFamily:    "'Fraunces', serif",
-            fontWeight:    900,
-            fontSize:      42,
-            letterSpacing: '-0.03em',
-            lineHeight:    1,
-            color:         '#1C0A00',
-          }}>
-            <span style={{ color: '#FF4500' }}>{'j'}</span>{'iff'}
-          </span>
-        </div>
-
-        {/* Rotating microcopy */}
-        <div style={{
-          fontSize:   13,
-          color:      '#7C6A5E',
-          fontWeight: 300,
-          letterSpacing: '0.02em',
-          minHeight:  20,
-          transition: 'opacity 0.3s',
+        aria-label="Loading"
+        style={{
+          position: 'fixed', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          background: '#FFFAF5', zIndex: 9999,
+          fontFamily: "'DM Sans', sans-serif",
         }}>
-          {displayMsg}
+        {/* Wordmark — gentle pulse only, no text below */}
+        <div className="jiff-pulse" style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{
+            fontFamily: "'Fraunces', serif",
+            fontWeight: 900, fontSize: 44,
+            color: '#FF4500', letterSpacing: '-1px',
+          }}>
+            {'jiff'}
+          </span>
         </div>
       </div>
     </>
