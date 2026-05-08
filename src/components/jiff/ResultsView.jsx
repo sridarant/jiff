@@ -240,7 +240,7 @@ export default function ResultsView({
         <span className="filter-pill">{'👥 ' + defaultServings + (defaultServings !== 1 ? ' servings' : ' serving')}</span>
       </div>
 
-      {!isPremium && trialActive && (
+      {false && !isPremium && trialActive && ( /* trial banner suppressed while PAYWALL_ENABLED=false */
         <div style={{ background:'rgba(255,184,0,0.08)', border:'1px solid rgba(255,184,0,0.25)', borderRadius:12, padding:'10px 16px', marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
           <div>
             <div style={{ fontSize:13, color:'#854F0B', fontWeight:500 }}>{'🎁 Trial — seeing 1 of '}{PAID_RECIPE_CAP}{' recipes'}</div>
@@ -253,7 +253,7 @@ export default function ResultsView({
         </div>
       )}
 
-      {!isPremium && !trialActive && user && (
+      {false && !isPremium && !trialActive && user && ( /* upgrade banner suppressed while PAYWALL_ENABLED=false */
         <div style={{ background:'rgba(255,69,0,0.06)', border:'1.5px solid rgba(255,69,0,0.25)', borderRadius:12, padding:'12px 16px', marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
           <div>
             <div style={{ fontSize:13, color:'#CC3700', fontWeight:600 }}>{'✨ '}{meals.length}{' recipes found'}</div>

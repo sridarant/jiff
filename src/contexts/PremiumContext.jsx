@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { trackTrialStart, trackPaywallShown } from '../lib/analytics';
 
+// ── PAYWALL FEATURE FLAG ──────────────────────────────────────────
+// Set to false during UX evaluation to remove all premium friction.
+// Re-enable before production monetization launch.
+// When false: all users treated as premium — no gates, no nudges, no caps.
+const PAYWALL_ENABLED = false;
+
 const PremiumContext = createContext(null);
 export const usePremium = () => useContext(PremiumContext);
 
@@ -96,13 +102,14 @@ export function PremiumProvider({ children }) {
   const [showGate,   setShowGate]     = useState(false);
   const [gateReason, setGateReason]   = useState('');
 
-  const isPremium    = !!premium;
-  const trialActive  = !isPremium && !!trial && trial.expiresAt > Date.now();
-  const trialExpired = !isPremium && !!trial && trial.expiresAt <= Date.now();
-  const hasNoAccess  = !isPremium && !trialActive; // no trial started or trial expired
+  // When PAYWALL_ENABLED=false, all users get full access — no gates
+  const isPremium    = !PAYWALL_ENABLED || !!premium;
+  const trialActive  = PAYWALL_ENABLED && !isPremium && !!trial && trial.expiresAt > Date.now();
+  const trialExpired = PAYWALL_ENABLED && !isPremium && !!trial && trial.expiresAt <= Date.now();
+  const hasNoAccess  = PAYWALL_ENABLED && !isPremium && !trialActive;
 
   // How many recipes to return per generation
-  const recipeCount = isPremium ? PAID_RECIPE_CAP : trialActive ? TRIAL_RECIPE_CAP : 0;
+  const recipeCount = (!PAYWALL_ENABLED || isPremium) ? PAID_RECIPE_CAP : trialActive ? TRIAL_RECIPE_CAP : 0;
 
   // Days remaining in trial
   const trialDaysLeft = trialActive
@@ -122,6 +129,7 @@ export function PremiumProvider({ children }) {
 
   // Gate check before every generation
   const checkAccess = useCallback((reason = 'generation') => {
+    if (!PAYWALL_ENABLED) return true;   // paywall disabled — full access
     if (isPremium) return true;
     if (trialExpired || hasNoAccess) {
       setGateReason(trialExpired ? 'trial_expired' : reason);

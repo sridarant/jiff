@@ -304,11 +304,12 @@ export function JourneyTiles({
   profileLoaded = false,
 }) {
   const navigate = useNavigate();
-  const [showMood,   setShowMood]   = useState(false);
-  const [dirOpen,    setDirOpen]    = useState(false);
-  const [cards,      setCards]      = useState(null);
-  const [animKey,    setAnimKey]    = useState(0);
-  const [toast,      setToast]      = useState({ show:false, msg:'' });
+  const [showMood,      setShowMood]      = useState(false);
+  const [dirOpen,       setDirOpen]       = useState(false);
+  const [cards,         setCards]         = useState(null);
+  const [animKey,       setAnimKey]       = useState(0);
+  const [toast,         setToast]         = useState({ show:false, msg:'' });
+  const [showAlternates,setShowAlternates]= useState(false); // revealed after first 'Not this'
   const feedbackRef  = useRef(0);
   const shownRef     = useRef(false);
 
@@ -400,6 +401,7 @@ export function JourneyTiles({
     logFeedback({ meal:card.meal, action:'rejected', userId:user?.id||null, position:pos });
     syncBehavior();
     trackRecommendationRejected({ mealId:card.meal?.id||card.label, mealName:card.label, cuisine:card.cuisine, position:pos });
+    setShowAlternates(true); // first rejection reveals alternates + change-direction
     const newCards = loadCards();
     markAsShown(newCards.map(c => c.label));
   };
@@ -532,8 +534,19 @@ export function JourneyTiles({
         </div>
       )}
 
-      {/* TIER 2a: Alternates — quiet, receded */}
-      {alternates.length > 0 && (
+      {/* Explore hint — quiet, only before first rejection */}
+      {!showAlternates && (
+        <div style={{ textAlign:'center', marginBottom:12 }}>
+          <button onClick={() => setShowAlternates(true)} style={{
+            background:'none', border:'none', cursor:'pointer',
+            fontSize:11, color:'rgba(124,106,94,0.55)', fontFamily:"'DM Sans',sans-serif",
+            touchAction:'manipulation', padding:'2px 8px', letterSpacing:'0.01em',
+          }}>{'or explore other options'}</button>
+        </div>
+      )}
+
+      {/* TIER 2a: Alternates — revealed after first rejection (Constitution D2) */}
+      {showAlternates && alternates.length > 0 && (
         <div style={{ marginBottom:16 }}>
           {alternates.map((card, i) => (
             <AlternateRow
@@ -549,12 +562,12 @@ export function JourneyTiles({
         </div>
       )}
 
-      {/* TIER 2b: Change direction — collapsed by default */}
-      <ChangeDirection
+      {/* TIER 2b: Change direction — collapsed, only after first rejection */}
+      {showAlternates && <ChangeDirection
         open={dirOpen}
         onToggle={() => setDirOpen(v => !v)}
         onOption={handleDirection}
-      />
+      />}
 
       {/* TIER 3: Context tile — only when festival/event is active */}
       <ContextTile tile={featured} onClick={handleFeatured} />

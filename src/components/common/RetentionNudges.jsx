@@ -108,7 +108,7 @@ export default function RetentionNudges({
       )}
 
       {/* Upgrade nudge */}
-      {upgradeNudge && (
+      {upgradeNudge && false && ( /* upgradeNudge suppressed while PAYWALL_ENABLED=false */
         <div style={{ marginTop:10, padding:'9px 13px', borderRadius:11, background:'rgba(255,69,0,0.05)', border:'1px solid rgba(255,69,0,0.18)', display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ fontSize:17, flexShrink:0 }}>{'⚡'}</span>
           <div style={{ flex:1, fontSize:12, color:'#CC3700', lineHeight:1.5 }}>
