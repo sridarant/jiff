@@ -200,6 +200,9 @@ export default function Jiff() {
         source={tileContext?.source || 'default'}
       />
     );
+    // Note: for journeyMode (tile-tapped) flows, view transitions to 'loading'
+    // and then back to 'results'. JourneyTiles is unmounted during this.
+    // The inline loading state is handled below via isGenerating prop.
 
     if (view === 'error') return (
       <div className="error-wrap">
@@ -333,7 +336,10 @@ export default function Jiff() {
 
         {journeyMode && user && view === 'input' && (
           <JourneyTiles
-            user={user} profile={profile} profileLoaded={profileLoaded} season={season} streak={streak}
+            user={user} profile={profile} profileLoaded={profileLoaded}
+            isLoadingRecommendation={view === 'loading'}
+            loadingSource={tileContext?.source || 'default'}
+            loadingMessage={loadingMessage} season={season} streak={streak}
             country={profile?.country || 'IN'}
             ratings={ratings} mealHistory={mealHistory}
             didYouCookNudge={didYouCookNudge}

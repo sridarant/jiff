@@ -182,7 +182,8 @@ export default function ResultsView({
   );
 
   return (
-    <div className="results-wrap">
+    <div className="results-wrap" style={{ animation:'rvFadeIn 0.25s ease' }}>
+      <style>{`@keyframes rvFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Pantry learning nudge */}
       {stapleSuggestion?.items?.length > 0 && !stapleSuggestion.shown && (

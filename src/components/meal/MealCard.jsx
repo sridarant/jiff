@@ -104,7 +104,7 @@ function CookBtn({ onClick, timeCtx }) {
         background: hov ? C.ember : C.jiff,
         color:'white', border:'none', fontSize:15,
         fontWeight:700, fontFamily:F, cursor:'pointer',
-        letterSpacing:'0.01em', transition:'background 0.12s',
+        letterSpacing:'0.01em', transition:'background 0.15s ease',
         touchAction:'manipulation',
       }}>
       {timeCtx.cook}
@@ -171,6 +171,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
   };
 
   return (
+    <><style>{`@keyframes jiffReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
     <div ref={ref} style={{
       background:'white', border:'1px solid '+C.border,
       borderRadius:18, overflow:'hidden', fontFamily:F,
@@ -225,7 +226,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
           display:'flex', alignItems:'center', justifyContent:'center', gap:4,
           touchAction:'manipulation', marginTop:8,
         }}>
-          <span style={{ display:'inline-block', transform:open?'rotate(180deg)':'none', transition:'transform 0.18s' }}>{'▾'}</span>
+          <span style={{ display:'inline-block', transform:open?'rotate(180deg)':'none', transition:'transform 0.18s ease' }}>{'▾'}</span>
           {open ? 'Close' : 'See how to make it'}
         </button>
       </div>
@@ -268,7 +269,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
                 <span style={{ fontSize:11, fontWeight:600, color:C.soft, letterSpacing:'0.06em', textTransform:'uppercase' }}>
                   {'Steps · '}{steps.length}
                 </span>
-                <span style={{ fontSize:13, color:C.soft, display:'inline-block', transform:stepsOpen?'rotate(180deg)':'none', transition:'transform 0.18s' }}>{'▾'}</span>
+                <span style={{ fontSize:13, color:C.soft, display:'inline-block', transform:stepsOpen?'rotate(180deg)':'none', transition:'transform 0.18s ease' }}>{'▾'}</span>
               </button>
 
               {stepsOpen && steps.map((step, i) => {
@@ -309,6 +310,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
         </div>
       )}
     </div>
+    </>
   );
 }
 

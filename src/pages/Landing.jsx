@@ -104,7 +104,7 @@ export default function Landing() {
           lineHeight: 1.7, fontWeight: 300,
           maxWidth: 420, margin: '0 auto 40px',
         }}>
-          {'Jiff decides what to cook tonight — based on your taste, your time, and what you have.'}
+          {'Jiff decides what to cook — based on your taste, your time, and what you have.'}
         </p>
 
         {/* ONE primary CTA */}

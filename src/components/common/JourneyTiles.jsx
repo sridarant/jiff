@@ -101,9 +101,9 @@ function PrimaryCard({ emoji, label, effortMins, why, onCook, onNotThis, animKey
       <style>{`@keyframes jiffFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       <div style={{
-        background: C.tint, border:'1.5px solid rgba(255,69,0,0.15)',
-        borderRadius:20, padding:'20px 18px 18px',
-        boxShadow:'0 2px 12px rgba(28,10,0,0.05)',
+        background: C.tint, border:'1.5px solid rgba(255,69,0,0.14)',
+        borderRadius:22, padding:'22px 20px 20px',
+        boxShadow:'0 4px 20px rgba(28,10,0,0.06), 0 1px 4px rgba(28,10,0,0.04)',
       }}>
         {/* Meal identity */}
         <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:14, cursor:'pointer' }} onClick={onCook}>
@@ -183,8 +183,8 @@ function AlternateRow({ emoji, label, effortMins, why, onSwap, onDismiss }) {
   return (
     <div style={{
       display:'flex', alignItems:'center', gap:11,
-      padding:'9px 12px', background:'white',
-      border:'1px solid ' + C.border, borderRadius:12, marginBottom:8,
+      padding:'8px 11px', background:'rgba(255,250,245,0.7)',
+      border:'1px solid rgba(28,10,0,0.06)', borderRadius:11, marginBottom:6,
     }}>
       <span style={{ fontSize:20, flexShrink:0 }}>{emoji}</span>
       <div style={{ flex:1, minWidth:0, cursor:'pointer' }} onClick={onSwap}>
@@ -295,6 +295,9 @@ export function JourneyTiles({
   onConfirmCooked, onDismissNudge,
   onSelectFridge, onGenerateDirect,
   user,
+  isLoadingRecommendation = false,
+  loadingSource = 'default',
+  loadingMessage = '',
   navJourneyCtx = null,
   continuityNudge = null,
   weekCookCount   = 0,
@@ -501,7 +504,30 @@ export function JourneyTiles({
       </div>
 
       {/* TIER 1: Primary recommendation */}
-      {primary ? (
+      {/* Inline loading state: calm skeleton overlays the primary slot */}
+      {isLoadingRecommendation ? (
+        <div style={{ marginBottom:20, animation:'jiffFadeUp 0.2s ease' }}>
+          <div style={{
+            background:'rgba(255,69,0,0.04)', border:'1.5px solid rgba(255,69,0,0.1)',
+            borderRadius:20, padding:'20px 18px',
+          }}>
+            {/* Pulsing skeleton content */}
+            <style>{`@keyframes jiffSkel{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
+            <div style={{ display:'flex', gap:14, marginBottom:16 }}>
+              <div style={{ width:46, height:46, borderRadius:'50%', background:'rgba(255,69,0,0.12)', animation:'jiffSkel 1.2s ease infinite' }}/>
+              <div style={{ flex:1 }}>
+                <div style={{ height:20, borderRadius:6, background:'rgba(28,10,0,0.08)', marginBottom:8, animation:'jiffSkel 1.2s ease infinite' }}/>
+                <div style={{ height:11, borderRadius:6, background:'rgba(28,10,0,0.05)', width:'60%', animation:'jiffSkel 1.2s ease infinite 0.2s' }}/>
+              </div>
+            </div>
+            <div style={{ height:13, borderRadius:6, background:'rgba(28,10,0,0.05)', marginBottom:14, animation:'jiffSkel 1.2s ease infinite 0.1s' }}/>
+            <div style={{ height:46, borderRadius:13, background:'rgba(255,69,0,0.15)', animation:'jiffSkel 1.2s ease infinite 0.15s' }}/>
+            <div style={{ textAlign:'center', marginTop:10, fontSize:12, color:'rgba(28,10,0,0.35)', fontFamily:F }}>
+              {loadingMessage || 'Putting together your recommendation…'}
+            </div>
+          </div>
+        </div>
+      ) : primary ? (
         <PrimaryCard
           animKey={animKey}
           emoji={primary.emoji}
