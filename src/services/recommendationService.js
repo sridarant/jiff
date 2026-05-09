@@ -105,32 +105,65 @@ export function getTimePressureFlag(rejectStreak = 0) {
 // Used by: scoreMeal (modifier) and buildWhyParts (framing).
 // Cap: 5 recent meals for pattern. No long-term lock-in.
 function buildContinuityProfile(mealHistory, catalogue) {
-  const recent = (mealHistory || []).slice(0, 5);
-  if (recent.length < 2) return { heavyStreak:0, comfortStreak:0, quickStreak:0, noveltyStreak:0, lightStreak:0 };
+  // Step 7: Recency-weighted continuity — recent meals count more than older ones
+  // Decay: meal[0] (most recent) weight=1.0, meal[1]=0.7, meal[2]=0.5, meal[3]=0.35, meal[4]=0.25
+  const WEIGHTS     = [1.0, 0.7, 0.5, 0.35, 0.25];
+  const recent      = (mealHistory || []).slice(0, 5);
+  const totalWeight = recent.reduce((s, _, i) => s + (WEIGHTS[i] || 0.2), 0);
+  if (recent.length < 2) return {
+    heavyStreak:0, comfortStreak:0, quickStreak:0, noveltyStreak:0,
+    lightStreak:0, effortStreak:'any', weekdayLean:false, recentCuisines:[],
+  };
 
   const catMap = {};
   (catalogue || []).forEach(m => { catMap[m.name.toLowerCase()] = m; });
 
   let heavy = 0, comfort = 0, quick = 0, novel = 0, light = 0;
-  recent.forEach(h => {
+  let involvedCount = 0, moderateCount = 0;
+  const recentCuisines = []; // for cuisine fatigue
+
+  recent.forEach((h, idx) => {
+    const w    = WEIGHTS[idx] || 0.2;
     const name = (h.meal || h.meal_name || '').toLowerCase();
     const entry = catMap[name];
-    if (!entry) return;
-    const tags = entry.tags || [];
-    if (tags.includes('heavy') || tags.includes('indulgent'))  heavy++;
-    if (tags.includes('comfort'))                               comfort++;
-    if (tags.includes('quick') || entry.effortMins <= 18)       quick++;
-    if (tags.includes('regional') || tags.includes('creative')) novel++;
-    if (tags.includes('light') || tags.includes('healthy'))     light++;
+    if (entry) {
+      const tags = entry.tags || [];
+      const ef   = entry.effortMins || 25;
+      if (tags.includes('heavy') || tags.includes('indulgent'))  heavy   += w;
+      if (tags.includes('comfort'))                               comfort += w;
+      if (tags.includes('quick') || ef <= 18)                    quick   += w;
+      if (tags.includes('regional') || tags.includes('creative')) novel  += w;
+      if (tags.includes('light') || tags.includes('healthy'))     light  += w;
+      if (ef >= 36)  involvedCount += w;
+      if (ef >= 22 && ef < 36) moderateCount += w;
+      if (entry.cuisine && entry.cuisine !== 'any') recentCuisines.push(entry.cuisine);
+    } else if (h.cuisine && h.cuisine !== 'any') {
+      // fallback: use history record's cuisine directly
+      recentCuisines.push(h.cuisine);
+    }
   });
 
-  const n = Math.max(recent.length, 1);
+  const tw = totalWeight || 1;
+  // Step 2D: Weekday lean — are most recent meals on weekdays?
+  const weekdayLean = recent.filter((h, i) => {
+    const d = h.generated_at ? new Date(h.generated_at).getDay() : -1;
+    return d >= 1 && d <= 5; // Mon–Fri
+  }).length / recent.length > 0.6;
+
+  // Step 2B: Effort streak label — dominant effort level in recent sessions
+  const effortStreak = involvedCount / tw >= 0.4 ? 'involved'
+                     : quick / tw >= 0.5         ? 'quick'
+                     : 'moderate';
+
   return {
-    heavyStreak:   heavy   / n,  // 0–1: proportion of recent meals that are heavy
-    comfortStreak: comfort / n,  // 0–1: proportion that are comfort
-    quickStreak:   quick   / n,  // 0–1: proportion that are quick
-    noveltyStreak: novel   / n,  // 0–1: proportion that are novel/regional
-    lightStreak:   light   / n,  // 0–1: proportion that are light
+    heavyStreak:   heavy   / tw,  // recency-weighted proportion — heavy/indulgent
+    comfortStreak: comfort / tw,  // recency-weighted proportion — comfort
+    quickStreak:   quick   / tw,  // recency-weighted proportion — quick/≤18min
+    noveltyStreak: novel   / tw,  // recency-weighted proportion — regional/creative
+    lightStreak:   light   / tw,  // recency-weighted proportion — light/healthy
+    effortStreak,                  // 'quick'|'moderate'|'involved'
+    weekdayLean,                   // true if >60% of recent meals were Mon–Fri
+    recentCuisines,                // last N cuisines cooked — for fatigue detection
   };
 }
 
@@ -560,58 +593,61 @@ function scoreMeal(meal, ctx) {
     }
   }
 
-  // ── Final score ───────────────────────────────────────────────
-  // ── Implicit behaviour micro-adjustment ──────────────────────────
-  // Small nudge (max ±0.08) applied when ≥5 implicit observations exist.
-  // Never dominates Brain v2.1 weights — just tilts the margin.
-  let implicitAdj = 0;
+  // ══════════════════════════════════════════════════════════════════
+  // SECTION B — Behavioral adjustment (implicit learning signals)
+  //   Declaration → Computation → Validation → Bounded cap
+  //   Scope: outer function — not inside any conditional
+  // ══════════════════════════════════════════════════════════════════
+  let implicitAdj = 0; // declared in outer scope — always accessible to SECTION E
   if (implicitProfile && implicitProfile.hasEnoughData) {
     const em = meal.effortMins || 30;
-    // Effort alignment: boost meals matching implicit effort tolerance
     if (implicitProfile.effortTolerance === 'quick'    && em <= 18) implicitAdj += 0.05;
     if (implicitProfile.effortTolerance === 'involved' && em >= 40)  implicitAdj += 0.04;
     if (implicitProfile.effortTolerance === 'quick'    && em >= 45)  implicitAdj -= 0.04;
-    // Novelty appetite: high explorer → penalise low-variety meals slightly more
     if ((implicitProfile.noveltyAppetite || 0) > 0.7 && varietyScore < 0.4) implicitAdj -= 0.04;
-    // Weekend hosting boost
     const isWeekend = [0, 6].includes(new Date().getDay());
     if (implicitProfile.weekendUser && isWeekend && (meal.tags || []).includes('hosting')) implicitAdj += 0.04;
-    // Impatient swapper: nudge novel/creative tags
     if ((implicitProfile.swapVelocityMean || 0) < -0.5) {
       if ((meal.tags || []).some(t => ['creative','fusion','party','new'].includes(t))) implicitAdj += 0.03;
     }
-    implicitAdj = Math.max(-0.08, Math.min(0.08, implicitAdj)); // cap
+    implicitAdj = Math.max(-0.08, Math.min(0.08, implicitAdj)); // bounded ±0.08
+  }
 
-  // ── Continuity adjustment ─────────────────────────────────────
-  // Gently nudges variety after streaks. Max ±0.07 — never dominates.
-  let continuityAdj = 0;
+  // ══════════════════════════════════════════════════════════════════
+  // SECTION C — Continuity adjustment (tag-pattern streaks)
+  //   Declaration → Computation → Validation → Bounded cap
+  //   Scope: outer function — not inside any conditional
+  // ══════════════════════════════════════════════════════════════════
+  let continuityAdj = 0; // declared in outer scope — always accessible to SECTION E
   if (continuityProfile) {
-    const fTags = meal.tags || [];
-    const isHeavy    = fTags.includes('heavy')   || fTags.includes('indulgent');
-    const isLight    = fTags.includes('light')   || fTags.includes('healthy');
-    const isComfort  = fTags.includes('comfort');
-    const isNovel    = fTags.includes('regional') || fTags.includes('creative');
+    const cTags  = meal.tags || [];
+    const isHeavy   = cTags.includes('heavy')   || cTags.includes('indulgent');
+    const isLight   = cTags.includes('light')   || cTags.includes('healthy');
+    const isComfort = cTags.includes('comfort');
+    const isNovel   = cTags.includes('regional') || cTags.includes('creative');
 
-    // After a heavy streak (≥60%), boost light options
-    if (continuityProfile.heavyStreak >= 0.6 && isLight)   continuityAdj += 0.06;
-    if (continuityProfile.heavyStreak >= 0.6 && isHeavy)   continuityAdj -= 0.05;
+    if (continuityProfile.heavyStreak   >= 0.6 && isLight)                                continuityAdj += 0.06;
+    if (continuityProfile.heavyStreak   >= 0.6 && isHeavy)                                continuityAdj -= 0.05;
+    if (continuityProfile.comfortStreak >= 0.8 && isNovel)                                continuityAdj += 0.04;
+    if (continuityProfile.quickStreak   >= 0.8 && isComfort && (meal.effortMins||30)>=30) continuityAdj += 0.04;
+    if (continuityProfile.noveltyStreak >= 0.6 && isComfort)                              continuityAdj += 0.03;
+    if (continuityProfile.lightStreak   >= 0.6 && isComfort && !isHeavy)                  continuityAdj += 0.03;
 
-    // After a comfort streak (≥80%), gently widen exploration
-    if (continuityProfile.comfortStreak >= 0.8 && isNovel) continuityAdj += 0.04;
+    // Step 2B: Effort rhythm — after involved streak, boost quick recovery meals
+    if (continuityProfile.effortStreak === 'involved' && (meal.tags||[]).includes('quick'))  continuityAdj += 0.03;
+    // Step 2D: Weekday lean — on weekdays boost quick/one_pot; on weekends ease up
+    const _isWeekday = new Date().getDay() >= 1 && new Date().getDay() <= 5;
+    if (continuityProfile.weekdayLean && _isWeekday && (meal.tags||[]).includes('one_pot')) continuityAdj += 0.03;
+    if (!continuityProfile.weekdayLean && !_isWeekday && (meal.tags||[]).includes('hosting')) continuityAdj += 0.03;
 
-    // After a quick-meal streak (≥80%), occasionally surface slower comforting meals
-    if (continuityProfile.quickStreak >= 0.8 && isComfort && (meal.effortMins || 30) >= 30) continuityAdj += 0.04;
-
-    // After novelty streak (≥60%), reintroduce comfort
-    if (continuityProfile.noveltyStreak >= 0.6 && isComfort) continuityAdj += 0.03;
-
-    // After a light streak (≥60%), a moderate option is welcome
-    if (continuityProfile.lightStreak >= 0.6 && isComfort && !isHeavy) continuityAdj += 0.03;
-
-    continuityAdj = Math.max(-0.07, Math.min(0.07, continuityAdj));
-  }
+    continuityAdj = Math.max(-0.07, Math.min(0.07, continuityAdj)); // bounded ±0.07
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // SECTION E — Final score composition
+  //   All adjustments declared above — no undeclared references possible
+  //   NaN guard: all components initialized to numeric defaults
+  // ══════════════════════════════════════════════════════════════════
   const score =
     (preferenceScore  * 0.35) +
     (timeScore        * 0.20) +
@@ -619,10 +655,14 @@ function scoreMeal(meal, ctx) {
     (varietyScore     * 0.15) +
     (feasibilityScore * 0.10) +
     (continuityScore  * 0.05) +
-    implicitAdj + continuityAdj;
+    implicitAdj       +        // Section B: ±0.08 behavioral
+    continuityAdj;             // Section C: ±0.07 continuity
+
+  // Step 6 — Runtime NaN guard (silent, zero-cost on fast path)
+  const safeScore = Number.isFinite(score) ? score : preferenceScore * 0.35;
 
   return {
-    meal, score,
+    meal, score: safeScore,
     // Scoring components — returned for debugging + why-text generation
     _components:  { preferenceScore, timeScore, successScore, varietyScore, feasibilityScore, continuityScore },
     // Legacy why-text fields (used by buildWhyParts)
@@ -696,7 +736,9 @@ function buildWhyParts(item) {
     else if ((cp.comfortStreak || 0) >= 0.8 && isNovel)   line1 = 'A little different from your usual';
     else if ((cp.quickStreak   || 0) >= 0.8 && isComfort) line1 = 'Worth slowing down for this one';
     else if ((cp.noveltyStreak || 0) >= 0.6 && isComfort) line1 = 'Back to something comforting';
-    else if ((cp.lightStreak   || 0) >= 0.6 && isComfort) line1 = 'Satisfying after lighter meals';
+    else if ((cp.lightStreak   || 0) >= 0.6 && isComfort)                line1 = 'Satisfying after lighter meals';
+    else if (cp.effortStreak === 'involved' && mTags.includes('quick'))    line1 = 'Easy after some bigger meals lately';
+    else if (cp.weekdayLean && mTags.includes('one_pot'))                  line1 = 'A quieter option for today';
   }
 
   if (line1 && !line1.startsWith('Line')) {
@@ -799,9 +841,13 @@ export function getPersonalisedRecommendations({
     : new Set();
   const forceShiftExcludeHeavy = forceShift;
 
-  const continuityRecentCuisines = journeyContext
+  // Step 2A: Cuisine fatigue — merge journeyContext cuisines WITH actual cook history
+  // This ensures cuisine rotation works across sessions, not just within a session
+  const _historyCuisines = (continuityProfile.recentCuisines || []).map(normC);
+  const _contextCuisines = journeyContext
     ? (journeyContext.continuityData?.recentCuisines || []).map(normC)
     : [];
+  const continuityRecentCuisines = [...new Set([..._contextCuisines, ..._historyCuisines])].slice(0, 4);
 
   const activeEvent = (journeyContext && journeyContext.activeEvent)
     || getActiveEvent({ region: (profile && profile.country) || 'IN' });
