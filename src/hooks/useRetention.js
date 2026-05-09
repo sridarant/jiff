@@ -10,6 +10,7 @@
 //   recentSuccessBoost exported for use by recommendationService
 
 import { useState, useEffect, useCallback } from 'react';
+import { getDaypart } from '../lib/daypart.js';
 import { logFeedback } from '../services/feedbackService';
 
 const K = {
@@ -117,8 +118,7 @@ export function useRetention({ mealHistory = [], ratings = {}, user, isPremium =
       if (liked) {
         const daysAgo = daysSince(liked.timestamp);
         if (daysAgo >= 1 && daysAgo <= 7) {
-          const { getDaypart: _gdp } = require('../lib/daypart.js') || {};
-          const _dp = typeof getDaypart !== 'undefined' ? getDaypart() : (new Date().getHours() >= 17 ? 'tonight' : new Date().getHours() >= 11 ? 'today' : 'this morning');
+          const _dp = getDaypart();
           const period = _dp === 'evening' || _dp === 'night' ? 'tonight' : _dp === 'afternoon' ? 'today' : 'this morning';
           setContinuityNudge({ mealName: liked.mealName, daysAgo, period });
         }

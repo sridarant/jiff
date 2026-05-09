@@ -100,6 +100,41 @@ export function getTimePressureFlag(rejectStreak = 0) {
   return false;
 }
 
+// ── buildContinuityProfile — tag pattern of recent meals ──────────────────
+// Reads mealHistory to detect streaks: heavy, comfort, quick, novelty.
+// Used by: scoreMeal (modifier) and buildWhyParts (framing).
+// Cap: 5 recent meals for pattern. No long-term lock-in.
+function buildContinuityProfile(mealHistory, catalogue) {
+  const recent = (mealHistory || []).slice(0, 5);
+  if (recent.length < 2) return { heavyStreak:0, comfortStreak:0, quickStreak:0, noveltyStreak:0, lightStreak:0 };
+
+  const catMap = {};
+  (catalogue || []).forEach(m => { catMap[m.name.toLowerCase()] = m; });
+
+  let heavy = 0, comfort = 0, quick = 0, novel = 0, light = 0;
+  recent.forEach(h => {
+    const name = (h.meal || h.meal_name || '').toLowerCase();
+    const entry = catMap[name];
+    if (!entry) return;
+    const tags = entry.tags || [];
+    if (tags.includes('heavy') || tags.includes('indulgent'))  heavy++;
+    if (tags.includes('comfort'))                               comfort++;
+    if (tags.includes('quick') || entry.effortMins <= 18)       quick++;
+    if (tags.includes('regional') || tags.includes('creative')) novel++;
+    if (tags.includes('light') || tags.includes('healthy'))     light++;
+  });
+
+  const n = Math.max(recent.length, 1);
+  return {
+    heavyStreak:   heavy   / n,  // 0–1: proportion of recent meals that are heavy
+    comfortStreak: comfort / n,  // 0–1: proportion that are comfort
+    quickStreak:   quick   / n,  // 0–1: proportion that are quick
+    noveltyStreak: novel   / n,  // 0–1: proportion that are novel/regional
+    lightStreak:   light   / n,  // 0–1: proportion that are light
+  };
+}
+
+
 // ── Journey context builder ───────────────────────────────────────
 // All entry points must call this. Returns a normalised context consumed by
 // getPersonalisedRecommendations(). No per-journey scoring logic allowed outside.
@@ -356,7 +391,8 @@ function scoreMeal(meal, ctx) {
     continuityRecentCuisines, activeEvent, journeyTagBoosts,
     successBoostMap = {},
     lastCookedName  = null,
-    implicitProfile = {},
+    implicitProfile    = {},
+    continuityProfile  = {},
   } = ctx;
 
   const nameLower       = meal.name.toLowerCase().trim();
@@ -545,6 +581,35 @@ function scoreMeal(meal, ctx) {
       if ((meal.tags || []).some(t => ['creative','fusion','party','new'].includes(t))) implicitAdj += 0.03;
     }
     implicitAdj = Math.max(-0.08, Math.min(0.08, implicitAdj)); // cap
+
+  // ── Continuity adjustment ─────────────────────────────────────
+  // Gently nudges variety after streaks. Max ±0.07 — never dominates.
+  let continuityAdj = 0;
+  if (continuityProfile) {
+    const fTags = meal.tags || [];
+    const isHeavy    = fTags.includes('heavy')   || fTags.includes('indulgent');
+    const isLight    = fTags.includes('light')   || fTags.includes('healthy');
+    const isComfort  = fTags.includes('comfort');
+    const isNovel    = fTags.includes('regional') || fTags.includes('creative');
+
+    // After a heavy streak (≥60%), boost light options
+    if (continuityProfile.heavyStreak >= 0.6 && isLight)   continuityAdj += 0.06;
+    if (continuityProfile.heavyStreak >= 0.6 && isHeavy)   continuityAdj -= 0.05;
+
+    // After a comfort streak (≥80%), gently widen exploration
+    if (continuityProfile.comfortStreak >= 0.8 && isNovel) continuityAdj += 0.04;
+
+    // After a quick-meal streak (≥80%), occasionally surface slower comforting meals
+    if (continuityProfile.quickStreak >= 0.8 && isComfort && (meal.effortMins || 30) >= 30) continuityAdj += 0.04;
+
+    // After novelty streak (≥60%), reintroduce comfort
+    if (continuityProfile.noveltyStreak >= 0.6 && isComfort) continuityAdj += 0.03;
+
+    // After a light streak (≥60%), a moderate option is welcome
+    if (continuityProfile.lightStreak >= 0.6 && isComfort && !isHeavy) continuityAdj += 0.03;
+
+    continuityAdj = Math.max(-0.07, Math.min(0.07, continuityAdj));
+  }
   }
 
   const score =
@@ -554,7 +619,7 @@ function scoreMeal(meal, ctx) {
     (varietyScore     * 0.15) +
     (feasibilityScore * 0.10) +
     (continuityScore  * 0.05) +
-    implicitAdj;
+    implicitAdj + continuityAdj;
 
   return {
     meal, score,
@@ -618,6 +683,24 @@ function buildWhyParts(item) {
     line1 = 'Great for using up what you have';
   } else if (_goal === 'try_new_things' && !(_allCuisines || []).includes(normC(meal.cuisine)) && meal.cuisine !== 'any') {
     line1 = 'Something a little different';
+  }
+
+  // Continuity framing — fires before generic fallback when no other signal matched
+  if (!line1) {
+    const cp = (item.ctx && item.ctx.continuityProfile) || {};
+    const mTags = meal.tags || [];
+    const isLight   = mTags.includes('light')   || mTags.includes('healthy');
+    const isComfort = mTags.includes('comfort');
+    const isNovel   = mTags.includes('regional') || mTags.includes('creative');
+    if      ((cp.heavyStreak   || 0) >= 0.6 && isLight)   line1 = 'A lighter direction from recent meals';
+    else if ((cp.comfortStreak || 0) >= 0.8 && isNovel)   line1 = 'A little different from your usual';
+    else if ((cp.quickStreak   || 0) >= 0.8 && isComfort) line1 = 'Worth slowing down for this one';
+    else if ((cp.noveltyStreak || 0) >= 0.6 && isComfort) line1 = 'Back to something comforting';
+    else if ((cp.lightStreak   || 0) >= 0.6 && isComfort) line1 = 'Satisfying after lighter meals';
+  }
+
+  if (line1 && !line1.startsWith('Line')) {
+    // already set above
   } else if (meal.tags.includes('popular')) {
     line1 = 'Widely loved, for good reason';
   } else if (meal.tags.includes('comfort')) {
@@ -696,6 +779,7 @@ export function getPersonalisedRecommendations({
 
   // Recent success boost — meals user confirmed cooking + liked get a score boost
   const successBoostMap = (() => { try { return getRecentSuccessBoostMap(); } catch { return {}; } })();
+  const continuityProfile = (() => { try { return buildContinuityProfile(mealHistory, MEAL_CATALOGUE); } catch { return { heavyStreak:0, comfortStreak:0, quickStreak:0, noveltyStreak:0, lightStreak:0 }; } })();
   const implicitProfile = (() => { try { return getImplicitBehaviourProfile(); } catch { return { noveltyAppetite:null, effortTolerance:'any', hasEnoughData:false }; } })();
   const learnedEffortPref = getLearnedEffortPreference();
   const learnedWeightsRaw = getAllLearnedWeights();
@@ -744,6 +828,7 @@ export function getPersonalisedRecommendations({
     successBoostMap,
     lastCookedName,
     implicitProfile,
+    continuityProfile,
     implicitProfile,
   };
 

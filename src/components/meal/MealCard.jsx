@@ -30,10 +30,6 @@ const C = {
 function getTimeCtx() {
   const dp = getDaypart();
   return { cook: COOK_CTA[dp], notThis: DISMISS_CTA[dp] };
-};
-  if (h >= 15 && h < 18) return { cook: 'Cook this today',           notThis: 'Try something else'     };
-  if (h >= 18 && h < 23) return { cook: 'Cook this tonight →',       notThis: 'Not tonight'            };
-  return                         { cook: 'Make this tonight →',       notThis: 'Try something lighter'  };
 }
 
 // ── Staples ───────────────────────────────────────────────────────
