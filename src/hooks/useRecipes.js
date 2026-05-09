@@ -262,8 +262,10 @@ export function useRecipes({
         setJourneyMode(true);
         return false;
       }
-      setProvisionalMeal(null); // API response arrived — clear provisional
       setMeals(resultMeals);
+      // Small delay before clearing provisional: lets ResultsView mount before ProvisionalCard unmounts
+      // Creates smooth crossfade feel — user sees meal identity continuously
+      setTimeout(() => setProvisionalMeal(null), 280);
       handleStreak(user.id);
       saveHistory({ userId: user.id, meals: resultMeals, mealType, cuisine, servings: defaultServings, ingredients: tileIngredients });
       trackGeneration({ cuisine: context.cuisine || cuisine, mealType: context.mealType || mealType, diet, isPremium, source: context.type || 'tile' });

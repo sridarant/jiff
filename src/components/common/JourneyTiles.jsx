@@ -33,10 +33,9 @@ import MoodSelector  from './MoodSelector.jsx';
 import RetentionNudges from './RetentionNudges.jsx';
 import { getUpcomingFestival, getActiveSportsEvent, getDayOfWeekContext } from '../../lib/festival.js';
 import { getFeaturedTile } from './journeyTileEngines.js';
-import { logFeedback, syncBehaviourToProfile } from '../../services/feedbackService.js';
+import { logFeedback, syncBehaviourToProfile, recordPrimaryShown } from '../../services/feedbackService.js';
 import { markAsShown, getPersonalisedRecommendations, recommendationToContext, buildJourneyContext } from '../../services/recommendationService.js';
 import { trackPrimaryShown, trackRecommendationAccepted, trackRecommendationRejected, trackRecommendationSwapped } from '../../lib/analytics.js';
-import { recordPrimaryShown } from '../../services/feedbackService.js';
 
 const F     = "'DM Sans', sans-serif";
 const SERIF = "'Fraunces', serif";

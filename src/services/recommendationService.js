@@ -355,6 +355,7 @@ function scoreMeal(meal, ctx) {
     continuityRecentCuisines, activeEvent, journeyTagBoosts,
     successBoostMap = {},
     lastCookedName  = null,
+    implicitProfile = {},
   } = ctx;
 
   const nameLower       = meal.name.toLowerCase().trim();

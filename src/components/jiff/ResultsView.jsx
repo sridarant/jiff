@@ -161,7 +161,7 @@ export default function ResultsView({
   // ── Meal card renderer ─────────────────────────────────────────
   // "Not for me" rendered BELOW card (not as absolute overlay) to keep fav clickable
   const renderMealCard = (meal, i) => (
-    <div key={mealKey(meal) + i} style={{ animation: 'rvFadeIn 0.25s ease', animationDelay: (i * 80) + 'ms', animationFillMode: 'both' }}>
+    <div key={mealKey(meal) + i} style={{ animation: 'rvFadeIn 0.25s ease', animationDelay: (i * 100) + 'ms', animationFillMode: 'both' }}>
       {isLeftover && <EffortTag meal={meal} />}
       <MealCard
         meal={meal} isFav={isFav(meal)}
@@ -182,7 +182,7 @@ export default function ResultsView({
   );
 
   return (
-    <div className="results-wrap" style={{ animation:'rvFadeIn 0.25s ease' }}>
+    <div className="results-wrap" style={{ animation:'rvFadeIn 0.28s ease' }}>
       <style>{`@keyframes rvFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Pantry learning nudge */}

@@ -228,6 +228,13 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
         {/* Primary CTA — time-aware */}
         <CookBtn onClick={handleCook} timeCtx={timeCtx}/>
 
+        {/* Provisional loading signal — shown while full recipe loads */}
+        {meal._provisional && (
+          <div style={{ textAlign:'center', marginTop:6, fontSize:11, color:'rgba(28,10,0,0.3)', fontFamily:F, animation:'jiffDetail 0.3s ease' }}>
+            {'Finishing the recipe…'}
+          </div>
+        )}
+
         {/* Expand toggle — fades in after first paint (Stage 2 reveal) */}
         {revealed ? (
           <button onClick={() => setOpen(v => !v)} style={{
@@ -266,7 +273,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
           {ingr.length > 0 && (
             <div style={{ marginBottom:18 }}>
               {ingr.map((ing, i) => (
-                <IngLine key={i} text={scaleIngredient(ing, scale, units)} staple={isStaple(ing)}/>
+                <div key={i} style={{ animation:'jiffDetail 0.25s ease', animationDelay:(i*35)+'ms', animationFillMode:'both', opacity:0 }}><IngLine text={scaleIngredient(ing, scale, units)} staple={isStaple(ing)}/></div>
               ))}
             </div>
           )}
@@ -288,7 +295,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
               {stepsOpen && steps.map((step, i) => {
                 const text = typeof step === 'string' ? step : (step?.instruction || step?.text || String(step));
                 return (
-                  <div key={i} style={{ display:'flex', gap:12, marginBottom:12 }}>
+                  <div key={i} style={{ display:'flex', gap:12, marginBottom:12, animation:'jiffDetail 0.3s ease', animationDelay:(i*55)+'ms', animationFillMode:'both', opacity:0 }}>
                     <div style={{ width:20, height:20, borderRadius:'50%', flexShrink:0, background:'rgba(28,10,0,0.05)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:C.muted, marginTop:2 }}>
                       {i + 1}
                     </div>
