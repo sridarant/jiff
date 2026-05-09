@@ -146,7 +146,16 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
   const [servings,  setServings]  = useState(meal?.servings || 2);
   const [share,     setShare]     = useState(false);
   const [copied,    setCopied]    = useState(false);
+  // Staged reveal: card identity appears instantly; detail fades in after first paint
+  const [revealed,  setRevealed]  = useState(false);
   const ref = useRef(null);
+
+  // Stage 2 reveal — 180ms after mount, expanded detail becomes available
+  // This creates the "assembling" feel without layout shift
+  useState(() => {
+    const t = setTimeout(() => setRevealed(true), 180);
+    return () => clearTimeout(t);
+  });
 
   if (!meal) return null;
 
@@ -171,7 +180,7 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
   };
 
   return (
-    <><style>{`@keyframes jiffReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    <><style>{`@keyframes jiffReveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}} @keyframes jiffDetail{from{opacity:0}to{opacity:1}}`}</style>
     <div ref={ref} style={{
       background:'white', border:'1px solid '+C.border,
       borderRadius:18, overflow:'hidden', fontFamily:F,
@@ -219,16 +228,20 @@ function MealCardInner({ meal, isFav, onToggleFav, rating, onRate, lang = 'en' }
         {/* Primary CTA — time-aware */}
         <CookBtn onClick={handleCook} timeCtx={timeCtx}/>
 
-        {/* Expand toggle — soft language */}
-        <button onClick={() => setOpen(v => !v)} style={{
-          width:'100%', padding:'9px 0 0', background:'none', border:'none',
-          fontSize:11, color:C.soft, cursor:'pointer', fontFamily:F,
-          display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-          touchAction:'manipulation', marginTop:8,
-        }}>
-          <span style={{ display:'inline-block', transform:open?'rotate(180deg)':'none', transition:'transform 0.18s ease' }}>{'▾'}</span>
-          {open ? 'Close' : 'See how to make it'}
-        </button>
+        {/* Expand toggle — fades in after first paint (Stage 2 reveal) */}
+        {revealed ? (
+          <button onClick={() => setOpen(v => !v)} style={{
+            width:'100%', padding:'9px 0 0', background:'none', border:'none',
+            fontSize:11, color:C.soft, cursor:'pointer', fontFamily:F,
+            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+            touchAction:'manipulation', marginTop:8, animation:'jiffDetail 0.3s ease',
+          }}>
+            <span style={{ display:'inline-block', transform:open?'rotate(180deg)':'none', transition:'transform 0.18s ease' }}>{'▾'}</span>
+            {open ? 'Close' : 'See how to make it'}
+          </button>
+        ) : (
+          <div style={{ height:25, marginTop:8 }} />
+        )}
       </div>
 
       {/* ── LEVELS 2+3: REASSURANCE + EXECUTION ──────────────── */}

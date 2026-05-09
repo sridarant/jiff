@@ -35,6 +35,7 @@ export function useRecipes({
   mealHistory,
 }) {
   const [meals,          setMeals]          = useState([]);
+  const [provisionalMeal, setProvisionalMeal] = useState(null); // shown immediately while API runs
   const [view,           setView]           = useState('input');
   const [errorMsg,       setErrorMsg]       = useState('');
   const [loadingMessage, setLoadingMessage] = useState('Putting together your recommendation…');
@@ -192,6 +193,20 @@ export function useRecipes({
     setTileContext(ctxType ? { ...CTX_MAP[ctxType], source: ctxType } : null);
     if (isGenerating.current) return false;
     isGenerating.current = true;
+    // Set provisional meal immediately from local scoring data (zero latency)
+    if (context.dish && context._why) {
+      setProvisionalMeal({
+        name:        context.dish,
+        emoji:       context._emoji || '🍽️',
+        description: context._why?.line1 || '',
+        time:        context.time || '',
+        diet:        context.diet || '',
+        ingredients: [],          // filled by API
+        method:      [],          // filled by API
+        steps:       [],          // filled by API
+        _provisional: true,       // flag: full recipe loading
+      });
+    }
     setView('loading'); setFactIdx(0); setJourneyMode(false);
     try {
       // Architecture: recommendation-first with intentional exploration support
@@ -247,6 +262,7 @@ export function useRecipes({
         setJourneyMode(true);
         return false;
       }
+      setProvisionalMeal(null); // API response arrived — clear provisional
       setMeals(resultMeals);
       handleStreak(user.id);
       saveHistory({ userId: user.id, meals: resultMeals, mealType, cuisine, servings: defaultServings, ingredients: tileIngredients });
@@ -326,8 +342,8 @@ export function useRecipes({
   }, []);
 
   return {
-    meals, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
-    setView, setMeals, setErrorMsg, setFactIdx, setRatings,
+    meals, provisionalMeal, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
+    setView, setMeals, setProvisionalMeal, setErrorMsg, setFactIdx, setRatings,
     setTileContext, setLoadingMessage,
     handleSubmit, handleGenerateDirect, handleSurprise, handleRate, handleStreak,
     syncRatings, reset,

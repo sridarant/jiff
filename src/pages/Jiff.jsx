@@ -84,7 +84,7 @@ export default function Jiff() {
 
   // ── Business logic via hooks ───────────────────────────────────
   const {
-    meals, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
+    meals, provisionalMeal, view, errorMsg, loadingMessage, factIdx, ratings, tileContext,
     setView, setErrorMsg, setFactIdx, setRatings, setTileContext,
     handleSubmit, handleGenerateDirect, handleSurprise, handleRate,
     syncRatings, reset: resetRecipes,
@@ -338,6 +338,7 @@ export default function Jiff() {
           <JourneyTiles
             user={user} profile={profile} profileLoaded={profileLoaded}
             isLoadingRecommendation={view === 'loading'}
+            provisionalMeal={provisionalMeal}
             loadingSource={tileContext?.source || 'default'}
             loadingMessage={loadingMessage} season={season} streak={streak}
             country={profile?.country || 'IN'}

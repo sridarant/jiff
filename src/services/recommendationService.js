@@ -23,7 +23,8 @@
 
 import { parseFoodTypeIds } from '../lib/dietary.js';
 import { getActiveEvent, getEventBoost, getMealContextLabel } from '../lib/eventIntelligence.js';
-import { getRecentSuccessBoostMap } from '../hooks/useRetention.js';
+import { getRecentSuccessBoostMap }       from '../hooks/useRetention.js';
+import { getImplicitBehaviourProfile, recordPrimaryShown } from '../services/feedbackService.js';
 import {
   getAllLearnedWeights,
   getRejectedMealNames,
@@ -135,16 +136,16 @@ export function buildJourneyContext({
 
   if (journeyType === 'kids') {
     effortPreference = 'quick';
-    journeyTagBoosts.push('mild', 'safe', 'light', 'healthy', 'protein', 'quick');
+    journeyTagBoosts.push('mild', 'safe', 'light', 'healthy', 'protein', 'quick', 'kids', 'one_pot');
     journeyMealType  = autoMealType === 'dinner' ? 'lunch' : autoMealType;
   }
   if (journeyType === 'leftover') {
     effortPreference = 'quick';
-    journeyTagBoosts.push('leftover', 'quick', 'comfort');
+    journeyTagBoosts.push('leftover', 'quick', 'comfort', 'one_pot', 'rainy_day');
   }
   if (journeyType === 'hosting') {
     effortPreference = 'any';
-    journeyTagBoosts.push('crowd-friendly', 'popular', 'comfort', 'indulgent', 'special');
+    journeyTagBoosts.push('crowd-friendly', 'popular', 'comfort', 'indulgent', 'special', 'hosting', 'festive', 'celebratory');
   }
   if (journeyType === 'health') {
     effortPreference = effortPreference === 'any' ? 'moderate' : effortPreference;
@@ -171,58 +172,131 @@ export function buildJourneyContext({
 
 // ── Meal catalogue ────────────────────────────────────────────────
 const MEAL_CATALOGUE = [
-  // Breakfast
-  { id:'poha',              name:'Poha',               emoji:'🍚', cuisine:'maharashtrian', mealType:['breakfast','snack'],         diet:['veg','vegan','jain','eggetarian'],  effortMins:15, tags:['quick','light','popular','mild','safe'] },
-  { id:'upma',              name:'Upma',               emoji:'🥣', cuisine:'south_indian',  mealType:['breakfast'],                 diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['quick','filling','mild','safe'] },
-  { id:'idli_sambar',       name:'Idli Sambar',        emoji:'🫓', cuisine:'tamil_nadu',    mealType:['breakfast','lunch'],         diet:['veg','vegan','jain','eggetarian'],  effortMins:10, tags:['light','popular','mild','healthy','protein','safe'] },
-  { id:'paratha',           name:'Paratha',            emoji:'🫓', cuisine:'punjabi',       mealType:['breakfast','lunch'],         diet:['veg','eggetarian'],                 effortMins:20, tags:['filling','popular','comfort'] },
-  { id:'aloo_paratha',      name:'Aloo Paratha',       emoji:'🫓', cuisine:'punjabi',       mealType:['breakfast','lunch'],         diet:['veg','jain','eggetarian'],          effortMins:25, tags:['filling','popular','comfort','heavy'] },
-  { id:'vermicelli',        name:'Vermicelli Upma',    emoji:'🍜', cuisine:'south_indian',  mealType:['breakfast'],                 diet:['veg','vegan','eggetarian'],         effortMins:15, tags:['quick','light','mild','safe'] },
-  { id:'oats_savory',       name:'Masala Oats',        emoji:'🥣', cuisine:'any',           mealType:['breakfast'],                 diet:['veg','vegan','jain','eggetarian'],  effortMins:10, tags:['quick','healthy','light','protein'] },
-  { id:'egg_bhurji',        name:'Egg Bhurji',         emoji:'🍳', cuisine:'any',           mealType:['breakfast','snack'],         diet:['eggetarian','non-veg'],             effortMins:12, tags:['quick','protein','spicy','light'] },
-  { id:'dosa',              name:'Plain Dosa',         emoji:'🥞', cuisine:'tamil_nadu',    mealType:['breakfast','snack'],         diet:['veg','vegan','eggetarian'],         effortMins:15, tags:['light','popular','mild','safe'] },
-  { id:'moong_chilla',      name:'Moong Dal Chilla',   emoji:'🥞', cuisine:'any',           mealType:['breakfast','snack'],         diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['healthy','protein','quick','light','safe'] },
-  { id:'pongal',            name:'Ven Pongal',         emoji:'🍲', cuisine:'tamil_nadu',    mealType:['breakfast','lunch'],         diet:['veg','jain'],                       effortMins:25, tags:['light','healthy','mild','comfort','festive','safe'] },
-  { id:'dhokla',            name:'Dhokla',             emoji:'🧆', cuisine:'gujarati',      mealType:['breakfast','snack'],         diet:['veg','vegan','eggetarian'],         effortMins:25, tags:['light','popular','healthy','mild','safe'] },
-  { id:'puttu_kadala',      name:'Puttu Kadala',       emoji:'🫙', cuisine:'kerala',        mealType:['breakfast'],                 diet:['veg','vegan'],                      effortMins:20, tags:['heavy','healthy','protein'] },
-  // Lunch
-  { id:'dal_rice',          name:'Dal Rice',           emoji:'🍛', cuisine:'any',           mealType:['lunch','dinner'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:25, tags:['comfort','popular','filling','protein','healthy','safe'] },
-  { id:'rajma',             name:'Rajma Chawal',       emoji:'🫘', cuisine:'punjabi',       mealType:['lunch','dinner'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:30, tags:['comfort','popular','protein','heavy'] },
-  { id:'curd_rice',         name:'Curd Rice',          emoji:'🍚', cuisine:'tamil_nadu',    mealType:['lunch'],                     diet:['veg','eggetarian'],                 effortMins:10, tags:['light','quick','mild','summer','safe'] },
-  { id:'khichdi',           name:'Khichdi',            emoji:'🍲', cuisine:'any',           mealType:['lunch','dinner'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['comfort','light','healthy','mild','safe'] },
-  { id:'roti_sabzi',        name:'Roti Sabzi',         emoji:'🫓', cuisine:'any',           mealType:['lunch','dinner'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:25, tags:['everyday','popular','light','safe'] },
-  { id:'sambar_rice',       name:'Sambar Rice',        emoji:'🍛', cuisine:'tamil_nadu',    mealType:['lunch'],                     diet:['veg','vegan','eggetarian'],         effortMins:20, tags:['comfort','popular','spicy','protein'] },
-  { id:'chole_bhature',     name:'Chole Bhature',      emoji:'🫘', cuisine:'punjabi',       mealType:['lunch'],                     diet:['veg','vegan','jain','eggetarian'],  effortMins:30, tags:['indulgent','popular','heavy','spicy'] },
-  { id:'biryani_veg',       name:'Veg Biryani',        emoji:'🍚', cuisine:'hyderabadi',    mealType:['lunch','dinner'],            diet:['veg','jain','eggetarian'],          effortMins:40, tags:['indulgent','popular','festive','spicy','heavy','crowd-friendly'] },
-  { id:'misal_pav',         name:'Misal Pav',          emoji:'🌶️', cuisine:'maharashtrian', mealType:['breakfast','lunch','snack'], diet:['veg','vegan','jain','eggetarian'],  effortMins:25, tags:['spicy','popular','protein','heavy'] },
-  { id:'thepla',            name:'Thepla',             emoji:'🫓', cuisine:'gujarati',      mealType:['breakfast','lunch'],         diet:['veg','jain'],                       effortMins:20, tags:['light','quick','healthy','mild','safe'] },
-  { id:'rasam_rice',        name:'Rasam Rice',         emoji:'🍲', cuisine:'tamil_nadu',    mealType:['lunch','dinner'],            diet:['veg','vegan','eggetarian'],         effortMins:20, tags:['light','spicy','healthy','monsoon','comfort'] },
-  // Dinner
-  { id:'palak_paneer',      name:'Palak Paneer',       emoji:'🥬', cuisine:'punjabi',       mealType:['dinner','lunch'],            diet:['veg','eggetarian'],                 effortMins:25, tags:['popular','healthy','comfort','protein','spicy','crowd-friendly'] },
-  { id:'dal_tadka',         name:'Dal Tadka',          emoji:'🍛', cuisine:'any',           mealType:['dinner','lunch'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['comfort','popular','everyday','protein','safe'] },
-  { id:'aloo_gobi',         name:'Aloo Gobi',          emoji:'🥦', cuisine:'punjabi',       mealType:['dinner','lunch'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:25, tags:['everyday','popular','mild','light','safe'] },
-  { id:'chicken_curry',     name:'Chicken Curry',      emoji:'🍗', cuisine:'any',           mealType:['dinner','lunch'],            diet:['non-veg','halal'],                  effortMins:35, tags:['popular','protein','comfort','spicy','crowd-friendly'] },
-  { id:'fish_curry',        name:'Fish Curry',         emoji:'🐟', cuisine:'bengali',       mealType:['dinner','lunch'],            diet:['non-veg','halal'],                  effortMins:30, tags:['popular','protein','spicy','comfort'] },
-  { id:'butter_chicken',    name:'Butter Chicken',     emoji:'🍗', cuisine:'punjabi',       mealType:['dinner'],                    diet:['non-veg','halal'],                  effortMins:35, tags:['popular','comfort','indulgent','protein','crowd-friendly'] },
-  { id:'hyderabadi_biryani',name:'Hyderabadi Biryani', emoji:'🍚', cuisine:'hyderabadi',    mealType:['lunch','dinner'],            diet:['non-veg','halal'],                  effortMins:60, tags:['special','popular','festive','spicy','heavy','crowd-friendly'] },
-  { id:'macher_jhol',       name:'Macher Jhol',        emoji:'🐟', cuisine:'bengali',       mealType:['lunch','dinner'],            diet:['non-veg','halal'],                  effortMins:30, tags:['comfort','protein','spicy'] },
-  { id:'avial',             name:'Avial',              emoji:'🥥', cuisine:'kerala',        mealType:['lunch','dinner'],            diet:['veg','vegan','eggetarian'],         effortMins:30, tags:['healthy','mild','festive','crowd-friendly'] },
-  { id:'fish_curry_kerala', name:'Kerala Fish Curry',  emoji:'🐠', cuisine:'kerala',        mealType:['dinner','lunch'],            diet:['non-veg','halal'],                  effortMins:30, tags:['heavy','spicy','protein','comfort'] },
-  { id:'sarson_saag',       name:'Sarson da Saag',     emoji:'🥬', cuisine:'punjabi',       mealType:['lunch','dinner'],            diet:['veg'],                              effortMins:30, tags:['healthy','heavy','winter','festive','crowd-friendly'] },
-  { id:'palak_dal',         name:'Palak Dal',          emoji:'🥬', cuisine:'any',           mealType:['lunch','dinner'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:25, tags:['healthy','protein','light','spicy'] },
-  { id:'moong_soup',        name:'Moong Dal Soup',     emoji:'🥣', cuisine:'any',           mealType:['dinner','lunch'],            diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['light','healthy','protein','mild','safe'] },
-  // Snack
-  { id:'samosa',            name:'Samosa',             emoji:'🥟', cuisine:'any',           mealType:['snack'],                     diet:['veg','vegan','jain','eggetarian'],  effortMins:30, tags:['popular','comfort','spicy','heavy'] },
-  { id:'pakora',            name:'Onion Pakora',       emoji:'🧅', cuisine:'any',           mealType:['snack'],                     diet:['veg','vegan','jain','eggetarian'],  effortMins:20, tags:['popular','monsoon','comfort','spicy'] },
-  { id:'vada',              name:'Medu Vada',          emoji:'🍩', cuisine:'tamil_nadu',    mealType:['breakfast','snack'],         diet:['veg','vegan','eggetarian'],         effortMins:25, tags:['popular','crispy','protein'] },
-  { id:'bread_pakora',      name:'Bread Pakora',       emoji:'🥪', cuisine:'any',           mealType:['snack','breakfast'],         diet:['veg','eggetarian'],                 effortMins:15, tags:['quick','popular','comfort','monsoon','safe'] },
-  { id:'bhel_puri',         name:'Bhel Puri',          emoji:'🥗', cuisine:'maharashtrian', mealType:['snack'],                     diet:['veg','vegan','jain'],               effortMins:10, tags:['quick','light','popular'] },
-  { id:'sprouts_salad',     name:'Sprouts Salad',      emoji:'🥗', cuisine:'any',           mealType:['snack','breakfast'],         diet:['veg','vegan','jain','eggetarian'],  effortMins:10, tags:['quick','healthy','light','protein','safe'] },
-  // Leftover
-  { id:'fried_rice',        name:'Fried Rice',         emoji:'🍳', cuisine:'any',           mealType:['lunch','dinner'],            diet:['non-veg','veg','eggetarian'],       effortMins:15, tags:['quick','leftover','comfort'] },
-  { id:'chapati_rolls',     name:'Chapati Rolls',      emoji:'🌯', cuisine:'any',           mealType:['lunch','snack'],             diet:['veg','non-veg'],                    effortMins:10, tags:['quick','leftover','light','safe'] },
-  { id:'dal_paratha',       name:'Dal Paratha',        emoji:'🫓', cuisine:'any',           mealType:['breakfast','lunch'],         diet:['veg'],                              effortMins:20, tags:['leftover','comfort','protein'] },
+  // ── BREAKFAST ──────────────────────────────────────────────────────
+  { id:'poha',             name:'Poha',                      emoji:'🍚', cuisine:'maharashtrian', mealType:['breakfast','snack'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:15, tags:['quick','light','popular','mild','safe','weekday','one_pot'] },
+  { id:'upma',             name:'Upma',                      emoji:'🥣', cuisine:'south_indian',  mealType:['breakfast','snack'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','light','popular','mild','safe','weekday','one_pot'] },
+  { id:'idli_sambar',      name:'Idli Sambar',               emoji:'🫓', cuisine:'south_indian',  mealType:['breakfast','lunch'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:30, tags:['light','popular','comfort','mild','healthy','everyday'] },
+  { id:'masala_dosa',      name:'Masala Dosa',               emoji:'🥞', cuisine:'south_indian',  mealType:['breakfast','lunch'],   diet:['veg','vegan','eggetarian'],          effortMins:35, tags:['popular','comfort','spicy','weekend','crowd-friendly'] },
+  { id:'aloo_paratha',     name:'Aloo Paratha',              emoji:'🫓', cuisine:'punjabi',       mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:30, tags:['comfort','filling','popular','mild','weekend'] },
+  { id:'puri_bhaji',       name:'Puri Bhaji',                emoji:'🫓', cuisine:'maharashtrian', mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:25, tags:['comfort','popular','festive','weekend'] },
+  { id:'methi_paratha',    name:'Methi Paratha',             emoji:'🫓', cuisine:'punjabi',       mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:25, tags:['healthy','light','mild','weekday'] },
+  { id:'besan_chilla',     name:'Besan Chilla',              emoji:'🥞', cuisine:'any',           mealType:['breakfast','snack'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:15, tags:['quick','protein','healthy','mild','weekday','one_pot'] },
+  { id:'egg_bhurji',       name:'Egg Bhurji',                emoji:'🍳', cuisine:'any',           mealType:['breakfast','dinner'],  diet:['eggetarian'],                        effortMins:10, tags:['quick','protein','spicy','weekday','one_pot'] },
+  { id:'akki_roti',        name:'Akki Roti',                 emoji:'🫓', cuisine:'karnataka',     mealType:['breakfast','lunch'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','light','healthy','weekday','regional'] },
+  { id:'rava_uttapam',     name:'Rava Uttapam',              emoji:'🥞', cuisine:'south_indian',  mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','light','mild','comfort','kids'] },
+  { id:'vermicelli_upma',  name:'Vermicelli Upma',           emoji:'🍝', cuisine:'south_indian',  mealType:['breakfast','snack'],   diet:['veg','eggetarian'],                  effortMins:15, tags:['quick','light','mild','kids','weekday','one_pot'] },
+  { id:'moong_dal_chilla', name:'Moong Dal Chilla',          emoji:'🥞', cuisine:'any',           mealType:['breakfast','snack'],   diet:['veg','vegan','jain','eggetarian'],   effortMins:15, tags:['quick','protein','healthy','light','weekday'] },
+  { id:'banana_pancake',   name:'Banana Oat Pancakes',       emoji:'🥞', cuisine:'any',           mealType:['breakfast'],           diet:['veg','eggetarian'],                  effortMins:20, tags:['kids','healthy','mild','comfort','weekend'] },
+  // ── LUNCH ──────────────────────────────────────────────────────────
+  { id:'dal_tadka',        name:'Dal Tadka',                 emoji:'🍲', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['comfort','popular','safe','protein','mild','weekday','everyday'] },
+  { id:'rajma',            name:'Rajma Chawal',              emoji:'🫘', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:45, tags:['comfort','popular','protein','filling','weekend','rainy_day'] },
+  { id:'chole_bhature',    name:'Chole Bhature',             emoji:'🍛', cuisine:'punjabi',       mealType:['lunch'],               diet:['veg','eggetarian'],                  effortMins:45, tags:['indulgent','popular','comfort','spicy','weekend','festive','crowd-friendly'] },
+  { id:'palak_paneer',     name:'Palak Paneer',              emoji:'🥬', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:30, tags:['comfort','healthy','protein','popular','mild'] },
+  { id:'butter_chicken',   name:'Butter Chicken',            emoji:'🍗', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:40, tags:['indulgent','popular','comfort','mild','hosting','crowd-friendly','weekend'] },
+  { id:'chicken_curry',    name:'Chicken Curry',             emoji:'🍗', cuisine:'any',           mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:40, tags:['comfort','popular','protein','spicy','everyday','rainy_day'] },
+  { id:'fish_curry',       name:'Fish Curry',                emoji:'🐟', cuisine:'kerala',        mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:30, tags:['comfort','spicy','protein','regional','rainy_day','everyday'] },
+  { id:'prawn_masala',     name:'Prawn Masala',              emoji:'🍤', cuisine:'coastal',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:25, tags:['protein','spicy','quick','special','hosting'] },
+  { id:'sambar_rice',      name:'Sambar Rice',               emoji:'🍚', cuisine:'tamil_nadu',    mealType:['lunch'],               diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['comfort','popular','light','healthy','everyday','one_pot','rainy_day'] },
+  { id:'curd_rice',        name:'Curd Rice',                 emoji:'🍚', cuisine:'south_indian',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:10, tags:['quick','light','comfort','safe','kids','healthy','one_pot'] },
+  { id:'lemon_rice',       name:'Lemon Rice',                emoji:'🍋', cuisine:'south_indian',  mealType:['lunch'],               diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','light','tangy','kids','one_pot','weekday'] },
+  { id:'tamarind_rice',    name:'Tamarind Rice',             emoji:'🍚', cuisine:'tamil_nadu',    mealType:['lunch'],               diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','tangy','light','regional','weekday','one_pot'] },
+  { id:'pongal',           name:'Ven Pongal',                emoji:'🍚', cuisine:'tamil_nadu',    mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:25, tags:['comfort','mild','light','safe','kids','rainy_day','one_pot'] },
+  { id:'rasam_rice',       name:'Rasam Rice',                emoji:'🍲', cuisine:'tamil_nadu',    mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['quick','light','comfort','rainy_day','healthy','one_pot'] },
+  { id:'kootu',            name:'Keerai Kootu',              emoji:'🥬', cuisine:'tamil_nadu',    mealType:['lunch'],               diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['healthy','light','mild','regional','everyday'] },
+  { id:'bisi_bele_bath',   name:'Bisi Bele Bath',            emoji:'🍲', cuisine:'karnataka',     mealType:['lunch'],               diet:['veg','eggetarian'],                  effortMins:40, tags:['comfort','filling','spicy','one_pot','weekend','rainy_day'] },
+  { id:'vangi_bath',       name:'Vangi Bath',                emoji:'🍆', cuisine:'karnataka',     mealType:['lunch'],               diet:['veg','vegan','eggetarian'],          effortMins:30, tags:['comfort','spicy','regional','everyday'] },
+  { id:'bhindi_masala',    name:'Bhindi Masala',             emoji:'🫑', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','light','healthy','everyday','mild'] },
+  { id:'aloo_gobi',        name:'Aloo Gobi',                 emoji:'🥔', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','comfort','mild','everyday','weekday'] },
+  { id:'matar_paneer',     name:'Matar Paneer',              emoji:'🫛', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:25, tags:['comfort','protein','mild','popular','everyday'] },
+  { id:'chana_masala',     name:'Chana Masala',              emoji:'🫘', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:30, tags:['comfort','protein','spicy','popular','everyday','rainy_day'] },
+  { id:'dal_makhani',      name:'Dal Makhani',               emoji:'🫘', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:50, tags:['indulgent','comfort','popular','hosting','weekend','crowd-friendly'] },
+  { id:'kadai_paneer',     name:'Kadai Paneer',              emoji:'🫑', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:30, tags:['spicy','protein','popular','hosting','weekend'] },
+  { id:'shahi_paneer',     name:'Shahi Paneer',              emoji:'🧀', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:35, tags:['indulgent','comfort','mild','hosting','festive','crowd-friendly'] },
+  { id:'mixed_veg',        name:'Mixed Veg Curry',           emoji:'🥕', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['light','healthy','mild','safe','everyday','weekday'] },
+  // ── DINNER ─────────────────────────────────────────────────────────
+  { id:'biryani_veg',      name:'Veg Biryani',               emoji:'🍚', cuisine:'hyderabadi',    mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:50, tags:['festive','hosting','crowd-friendly','indulgent','weekend','celebratory'] },
+  { id:'biryani_chicken',  name:'Chicken Biryani',           emoji:'🍗', cuisine:'hyderabadi',    mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:60, tags:['festive','hosting','crowd-friendly','indulgent','weekend','celebratory'] },
+  { id:'pulao',            name:'Vegetable Pulao',           emoji:'🍚', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['light','mild','quick','weekday','one_pot'] },
+  { id:'jeera_rice',       name:'Jeera Rice',                emoji:'🍚', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:15, tags:['quick','mild','light','safe','weekday','one_pot'] },
+  { id:'egg_curry',        name:'Egg Curry',                 emoji:'🥚', cuisine:'any',           mealType:['lunch','dinner'],      diet:['eggetarian'],                        effortMins:25, tags:['protein','spicy','comfort','everyday','quick'] },
+  { id:'mutton_curry',     name:'Mutton Curry',              emoji:'🥩', cuisine:'any',           mealType:['dinner'],              diet:['nonveg'],                            effortMins:60, tags:['indulgent','spicy','protein','weekend','special','rainy_day'] },
+  { id:'keema_matar',      name:'Keema Matar',               emoji:'🥩', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:30, tags:['protein','spicy','comfort','everyday','quick'] },
+  { id:'chicken_65',       name:'Chicken 65',                emoji:'🍗', cuisine:'south_indian',  mealType:['dinner','snack'],      diet:['nonveg'],                            effortMins:30, tags:['spicy','crispy','protein','kids','hosting','crowd-friendly'] },
+  { id:'paneer_tikka',     name:'Paneer Tikka',              emoji:'🧀', cuisine:'punjabi',       mealType:['dinner','snack'],      diet:['veg','eggetarian'],                  effortMins:30, tags:['protein','hosting','crowd-friendly','spicy','weekend','festive'] },
+  { id:'tandoori_chicken', name:'Tandoori Chicken',          emoji:'🍗', cuisine:'punjabi',       mealType:['dinner'],              diet:['nonveg'],                            effortMins:45, tags:['hosting','crowd-friendly','spicy','protein','weekend','festive'] },
+  { id:'rogan_josh',       name:'Rogan Josh',                emoji:'🍖', cuisine:'kashmiri',      mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:60, tags:['indulgent','spicy','special','hosting','rainy_day','weekend'] },
+  { id:'malabar_chicken',  name:'Malabar Chicken Curry',     emoji:'🍗', cuisine:'kerala',        mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:35, tags:['spicy','comfort','protein','regional','rainy_day'] },
+  { id:'avial',            name:'Avial',                     emoji:'🥕', cuisine:'kerala',        mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:35, tags:['healthy','light','regional','comfort','festive'] },
+  { id:'puttu_kadala',     name:'Puttu & Kadala Curry',      emoji:'🥥', cuisine:'kerala',        mealType:['breakfast','lunch'],   diet:['veg','vegan','eggetarian'],          effortMins:40, tags:['comfort','regional','weekend','special','protein'] },
+  { id:'theeyal',          name:'Theeyal',                   emoji:'🍲', cuisine:'kerala',        mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:40, tags:['spicy','regional','comfort','rainy_day','special'] },
+  { id:'chettinad_chicken',name:'Chettinad Chicken',         emoji:'🍗', cuisine:'tamil_nadu',    mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:45, tags:['spicy','special','regional','protein','weekend'] },
+  { id:'kuzhambu',         name:'Vatha Kuzhambu',            emoji:'🍲', cuisine:'tamil_nadu',    mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['spicy','tangy','comfort','regional','rainy_day','everyday'] },
+  { id:'dal_palak',        name:'Dal Palak',                 emoji:'🥬', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['healthy','light','quick','protein','mild','weekday','one_pot'] },
+  { id:'aloo_methi',       name:'Aloo Methi',                emoji:'🌿', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['healthy','light','quick','weekday','mild'] },
+  { id:'baingan_bharta',   name:'Baingan Bharta',            emoji:'🍆', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:30, tags:['smoky','comfort','spicy','everyday','rainy_day'] },
+  { id:'lauki_dal',        name:'Lauki Dal',                 emoji:'🥒', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:25, tags:['light','healthy','mild','weekday','one_pot','everyday'] },
+  { id:'mushroom_masala',  name:'Mushroom Masala',           emoji:'🍄', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['quick','protein','spicy','weekday','everyday'] },
+  { id:'egg_masala_rice',  name:'Egg Masala Rice',           emoji:'🍳', cuisine:'any',           mealType:['lunch','dinner'],      diet:['eggetarian'],                        effortMins:20, tags:['quick','protein','one_pot','weekday','comfort'] },
+  // ── SNACKS + SIDES ─────────────────────────────────────────────────
+  { id:'samosa',           name:'Samosa',                    emoji:'🔶', cuisine:'any',           mealType:['snack'],               diet:['veg','vegan','eggetarian'],          effortMins:45, tags:['comfort','popular','spicy','festive','kids','crowd-friendly','weekend'] },
+  { id:'vada_pav',         name:'Vada Pav',                  emoji:'🍔', cuisine:'maharashtrian', mealType:['snack','lunch'],        diet:['veg','vegan','eggetarian'],          effortMins:30, tags:['comfort','popular','spicy','kids','street_food','weekend'] },
+  { id:'masala_chai_pakora',name:'Masala Pakoras',           emoji:'🫚', cuisine:'any',           mealType:['snack'],               diet:['veg','eggetarian'],                  effortMins:20, tags:['comfort','quick','rainy_day','spicy','kids','crowd-friendly'] },
+  { id:'aloo_tikki',       name:'Aloo Tikki Chaat',          emoji:'🥔', cuisine:'any',           mealType:['snack'],               diet:['veg','eggetarian'],                  effortMins:30, tags:['comfort','spicy','tangy','kids','street_food','popular'] },
+  { id:'pani_puri',        name:'Pani Puri',                 emoji:'🫙', cuisine:'any',           mealType:['snack'],               diet:['veg','vegan','eggetarian'],          effortMins:30, tags:['comfort','popular','kids','tangy','spicy','festive'] },
+  { id:'misal_pav',        name:'Misal Pav',                 emoji:'🍲', cuisine:'maharashtrian', mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:35, tags:['spicy','comfort','protein','popular','regional','weekend'] },
+  { id:'khandvi',          name:'Khandvi',                   emoji:'🌯', cuisine:'gujarati',      mealType:['snack'],               diet:['veg','eggetarian'],                  effortMins:30, tags:['light','mild','comfort','festive','kids','regional'] },
+  { id:'dhokla',           name:'Steamed Dhokla',            emoji:'🫓', cuisine:'gujarati',      mealType:['breakfast','snack'],   diet:['veg','eggetarian'],                  effortMins:40, tags:['healthy','light','mild','festive','kids','popular'] },
+  { id:'thepla',           name:'Thepla',                    emoji:'🫓', cuisine:'gujarati',      mealType:['breakfast','snack'],   diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','healthy','light','weekday','mild','everyday'] },
+  // ── INDO-CHINESE ────────────────────────────────────────────────────
+  { id:'hakka_noodles',    name:'Hakka Noodles',             emoji:'🍜', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','kids','crowd-friendly','spicy','weekday','popular','one_pot'] },
+  { id:'veg_fried_rice',   name:'Vegetable Fried Rice',      emoji:'🍳', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','kids','popular','mild','weekday','one_pot'] },
+  { id:'chilli_paneer',    name:'Chilli Paneer',             emoji:'🌶️', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:25, tags:['spicy','protein','kids','popular','hosting','quick','crowd-friendly'] },
+  { id:'chicken_manchurian',name:'Chicken Manchurian',       emoji:'🍗', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:30, tags:['spicy','protein','kids','popular','hosting','crowd-friendly'] },
+  { id:'gobi_manchurian',  name:'Gobi Manchurian',           emoji:'🥦', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:25, tags:['spicy','kids','popular','quick','hosting','crowd-friendly'] },
+  { id:'veg_chowmein',     name:'Veg Chowmein',              emoji:'🍝', cuisine:'indo_chinese',  mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:15, tags:['quick','kids','mild','weekday','popular','one_pot'] },
+  { id:'spring_rolls',     name:'Veg Spring Rolls',          emoji:'🌯', cuisine:'indo_chinese',  mealType:['snack','dinner'],      diet:['veg','eggetarian'],                  effortMins:40, tags:['crispy','hosting','kids','crowd-friendly','weekend','festive'] },
+  // ── HOSTING / SPECIAL OCCASION ──────────────────────────────────────
+  { id:'paneer_butter_masala',name:'Paneer Butter Masala',   emoji:'🧀', cuisine:'punjabi',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:30, tags:['hosting','comfort','mild','crowd-friendly','popular','festive','indulgent'] },
+  { id:'dum_aloo',         name:'Dum Aloo',                  emoji:'🥔', cuisine:'kashmiri',      mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:45, tags:['indulgent','spicy','hosting','special','weekend','festive'] },
+  { id:'lamb_biryani',     name:'Lamb Biryani',              emoji:'🍖', cuisine:'hyderabadi',    mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:90, tags:['hosting','festive','celebratory','indulgent','crowd-friendly','special','weekend'] },
+  { id:'fish_biryani',     name:'Fish Biryani',              emoji:'🐟', cuisine:'coastal',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:60, tags:['hosting','special','spicy','festive','weekend'] },
+  { id:'nihari',           name:'Nihari',                    emoji:'🍖', cuisine:'any',           mealType:['breakfast','dinner'],  diet:['nonveg'],                            effortMins:120,tags:['special','indulgent','hosting','rainy_day','weekend','festive','celebratory'] },
+  { id:'dal_baati_churma', name:'Dal Baati Churma',          emoji:'🫓', cuisine:'rajasthani',    mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:90, tags:['hosting','festive','special','indulgent','regional','celebratory'] },
+  { id:'laal_maas',        name:'Laal Maas',                 emoji:'🥩', cuisine:'rajasthani',    mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:60, tags:['spicy','special','hosting','regional','weekend','indulgent'] },
+  { id:'paya',             name:'Paya',                      emoji:'🍲', cuisine:'any',           mealType:['breakfast','dinner'],  diet:['nonveg'],                            effortMins:120,tags:['special','comfort','rainy_day','weekend','regional'] },
+  // ── QUICK WEEKDAY ────────────────────────────────────────────────────
+  { id:'khichdi',          name:'Moong Dal Khichdi',         emoji:'🍲', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','comfort','healthy','safe','mild','kids','rainy_day','one_pot','weekday'] },
+  { id:'poha_batata',      name:'Batata Poha',               emoji:'🍚', cuisine:'maharashtrian', mealType:['breakfast','snack'],   diet:['veg','vegan','eggetarian'],          effortMins:15, tags:['quick','light','mild','kids','weekday','one_pot'] },
+  { id:'rava_dosa',        name:'Rava Dosa',                 emoji:'🥞', cuisine:'south_indian',  mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','light','crispy','mild','weekday'] },
+  { id:'pesarattu',        name:'Pesarattu',                 emoji:'🥞', cuisine:'andhra',        mealType:['breakfast','lunch'],   diet:['veg','vegan','eggetarian'],          effortMins:15, tags:['quick','protein','healthy','light','weekday','regional'] },
+  { id:'dal_rice',         name:'Simple Dal Rice',           emoji:'🍚', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','comfort','safe','mild','kids','weekday','one_pot','everyday'] },
+  { id:'tur_dal',          name:'Tur Dal',                   emoji:'🫘', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:25, tags:['comfort','healthy','mild','protein','weekday','everyday','one_pot'] },
+  { id:'tomato_rice',      name:'Tomato Rice',               emoji:'🍅', cuisine:'south_indian',  mealType:['lunch'],               diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['quick','tangy','comfort','weekday','one_pot'] },
+  { id:'masala_khichdi',   name:'Masala Khichdi',            emoji:'🍲', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:25, tags:['comfort','one_pot','rainy_day','quick','healthy','weekday'] },
+  { id:'tawa_roti_sabzi',  name:'Tawa Roti + Sabzi',         emoji:'🫓', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:20, tags:['quick','light','everyday','mild','weekday','healthy'] },
+  // ── KIDS / FAMILY ────────────────────────────────────────────────────
+  { id:'mac_masala',       name:'Masala Macaroni',           emoji:'🍝', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','kids','mild','popular','weekday','one_pot'] },
+  { id:'paneer_paratha',   name:'Paneer Paratha',            emoji:'🫓', cuisine:'punjabi',       mealType:['breakfast','lunch'],   diet:['veg','eggetarian'],                  effortMins:25, tags:['kids','comfort','protein','mild','weekend','filling'] },
+  { id:'veggie_pasta',     name:'Veggie Pasta',              emoji:'🍝', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:20, tags:['quick','kids','mild','weekday','popular','one_pot'] },
+  { id:'mashed_potato_toast',name:'Mashed Potato Toast',     emoji:'🍞', cuisine:'any',           mealType:['breakfast','snack'],   diet:['veg','eggetarian'],                  effortMins:15, tags:['quick','kids','mild','comfort','weekday'] },
+  { id:'sweet_corn_soup',  name:'Sweet Corn Soup',           emoji:'🌽', cuisine:'any',           mealType:['dinner','snack'],      diet:['veg','eggetarian'],                  effortMins:15, tags:['quick','kids','mild','light','rainy_day','comfort','one_pot'] },
+  // ── RAINY DAY / COMFORT ──────────────────────────────────────────────
+  { id:'masala_chai_sandwich',name:'Masala Sandwich',        emoji:'🥪', cuisine:'any',           mealType:['breakfast','snack'],   diet:['veg','eggetarian'],                  effortMins:10, tags:['quick','comfort','rainy_day','kids','mild','weekday'] },
+  { id:'tomato_soup',      name:'Tomato Soup & Toast',       emoji:'🍅', cuisine:'any',           mealType:['dinner','snack'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['light','comfort','rainy_day','mild','kids','one_pot'] },
+  { id:'hot_and_sour_soup',name:'Hot & Sour Soup',           emoji:'🍜', cuisine:'indo_chinese',  mealType:['dinner','snack'],      diet:['veg','eggetarian'],                  effortMins:15, tags:['quick','rainy_day','light','spicy','one_pot'] },
+  { id:'masoor_dal',       name:'Masoor Dal',                emoji:'🫘', cuisine:'any',           mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['quick','comfort','healthy','protein','rainy_day','one_pot','weekday'] },
+  { id:'egg_drop_soup',    name:'Egg Drop Soup',             emoji:'🥚', cuisine:'indo_chinese',  mealType:['dinner','snack'],      diet:['eggetarian'],                        effortMins:10, tags:['quick','light','rainy_day','comfort','one_pot'] },
+  { id:'moong_soup',       name:'Moong Soup',                emoji:'🫘', cuisine:'any',           mealType:['dinner','snack'],      diet:['veg','vegan','jain','eggetarian'],   effortMins:25, tags:['light','healthy','mild','rainy_day','comfort','one_pot'] },
+  // ── BENGALI ─────────────────────────────────────────────────────────
+  { id:'shorshe_ilish',    name:'Shorshe Ilish',             emoji:'🐟', cuisine:'bengali',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:25, tags:['special','regional','protein','spicy','comfort','weekend'] },
+  { id:'aloo_posto',       name:'Aloo Posto',                emoji:'🥔', cuisine:'bengali',       mealType:['lunch','dinner'],      diet:['veg','vegan','eggetarian'],          effortMins:20, tags:['quick','regional','mild','comfort','everyday'] },
+  { id:'cholar_dal',       name:'Cholar Dal',                emoji:'🫘', cuisine:'bengali',       mealType:['lunch','dinner'],      diet:['veg','eggetarian'],                  effortMins:30, tags:['comfort','festive','mild','regional','weekend'] },
+  { id:'kosha_mangsho',    name:'Kosha Mangsho',             emoji:'🥩', cuisine:'bengali',       mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:60, tags:['spicy','special','indulgent','weekend','regional','hosting'] },
+  // ── ANDHRA ──────────────────────────────────────────────────────────
+  { id:'gongura_mutton',   name:'Gongura Mutton',            emoji:'🥩', cuisine:'andhra',        mealType:['lunch','dinner'],      diet:['nonveg'],                            effortMins:50, tags:['spicy','tangy','special','regional','protein','weekend'] },
+  { id:'pesarattu_upma',   name:'Pesarattu with Upma',       emoji:'🥞', cuisine:'andhra',        mealType:['breakfast'],           diet:['veg','eggetarian'],                  effortMins:30, tags:['healthy','protein','regional','weekend','comfort'] },
 ];
+
 
 // ── Utilities ─────────────────────────────────────────────────────
 function getMealTypeFromHour(h) {
@@ -449,13 +523,36 @@ function scoreMeal(meal, ctx) {
   }
 
   // ── Final score ───────────────────────────────────────────────
+  // ── Implicit behaviour micro-adjustment ──────────────────────────
+  // Small nudge (max ±0.08) applied when ≥5 implicit observations exist.
+  // Never dominates Brain v2.1 weights — just tilts the margin.
+  let implicitAdj = 0;
+  if (implicitProfile && implicitProfile.hasEnoughData) {
+    const em = meal.effortMins || 30;
+    // Effort alignment: boost meals matching implicit effort tolerance
+    if (implicitProfile.effortTolerance === 'quick'    && em <= 18) implicitAdj += 0.05;
+    if (implicitProfile.effortTolerance === 'involved' && em >= 40)  implicitAdj += 0.04;
+    if (implicitProfile.effortTolerance === 'quick'    && em >= 45)  implicitAdj -= 0.04;
+    // Novelty appetite: high explorer → penalise low-variety meals slightly more
+    if ((implicitProfile.noveltyAppetite || 0) > 0.7 && varietyScore < 0.4) implicitAdj -= 0.04;
+    // Weekend hosting boost
+    const isWeekend = [0, 6].includes(new Date().getDay());
+    if (implicitProfile.weekendUser && isWeekend && (meal.tags || []).includes('hosting')) implicitAdj += 0.04;
+    // Impatient swapper: nudge novel/creative tags
+    if ((implicitProfile.swapVelocityMean || 0) < -0.5) {
+      if ((meal.tags || []).some(t => ['creative','fusion','party','new'].includes(t))) implicitAdj += 0.03;
+    }
+    implicitAdj = Math.max(-0.08, Math.min(0.08, implicitAdj)); // cap
+  }
+
   const score =
     (preferenceScore  * 0.35) +
     (timeScore        * 0.20) +
     (successScore     * 0.15) +
     (varietyScore     * 0.15) +
     (feasibilityScore * 0.10) +
-    (continuityScore  * 0.05);
+    (continuityScore  * 0.05) +
+    implicitAdj;
 
   return {
     meal, score,
@@ -592,6 +689,7 @@ export function getPersonalisedRecommendations({
 
   // Recent success boost — meals user confirmed cooking + liked get a score boost
   const successBoostMap = (() => { try { return getRecentSuccessBoostMap(); } catch { return {}; } })();
+  const implicitProfile = (() => { try { return getImplicitBehaviourProfile(); } catch { return { noveltyAppetite:null, effortTolerance:'any', hasEnoughData:false }; } })();
   const learnedEffortPref = getLearnedEffortPreference();
   const learnedWeightsRaw = getAllLearnedWeights();
   const learnedWeights    = {};
@@ -638,6 +736,8 @@ export function getPersonalisedRecommendations({
     continuityRecentCuisines, activeEvent, journeyTagBoosts, journeyType,
     successBoostMap,
     lastCookedName,
+    implicitProfile,
+    implicitProfile,
   };
 
   const compatible = MEAL_CATALOGUE.filter(m => isDietaryCompatible(m, userDietIds));
@@ -694,6 +794,7 @@ export function recommendationToContext(rec) {
     time:     rec.meal.effortMins + ' min',
     _why:     rec.why,
     _role:    rec.role,
+    _emoji:   rec.meal.emoji || '🍽️',
   };
 }
 

@@ -36,6 +36,7 @@ import { getFeaturedTile } from './journeyTileEngines.js';
 import { logFeedback, syncBehaviourToProfile } from '../../services/feedbackService.js';
 import { markAsShown, getPersonalisedRecommendations, recommendationToContext, buildJourneyContext } from '../../services/recommendationService.js';
 import { trackPrimaryShown, trackRecommendationAccepted, trackRecommendationRejected, trackRecommendationSwapped } from '../../lib/analytics.js';
+import { recordPrimaryShown } from '../../services/feedbackService.js';
 
 const F     = "'DM Sans', sans-serif";
 const SERIF = "'Fraunces', serif";
@@ -287,6 +288,91 @@ function ContextTile({ tile, onClick }) {
 }
 
 
+
+// ── ProvisionalCard — rich instant reveal while API completes ─────
+// Shows meal identity (from local scoring) immediately.
+// Ingredients + steps area pulses — clearly "loading in", not missing.
+// Transitions smoothly to full MealCard when API response arrives.
+// Constitution G1: motion for orientation — this tells user "recipe is loading"
+
+function ProvisionalCard({ meal }) {
+  if (!meal) return null;
+  const F_S = "'DM Sans',sans-serif";
+  const isQuick = parseInt(meal.time) <= 15;
+
+  return (
+    <div style={{ marginBottom:20, maxWidth:520, margin:'0 auto 20px', animation:'jiffFadeUp 0.2s ease' }}>
+      <div style={{
+        background:'rgba(255,69,0,0.035)', border:'1.5px solid rgba(255,69,0,0.14)',
+        borderRadius:22, padding:'22px 20px 20px',
+        boxShadow:'0 4px 20px rgba(28,10,0,0.06), 0 1px 4px rgba(28,10,0,0.04)',
+      }}>
+        {/* Meal identity — real, from local scoring */}
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:14 }}>
+          <span style={{ fontSize:40, lineHeight:1, flexShrink:0, marginTop:2 }}>{meal.emoji}</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{
+              fontFamily:"'Fraunces',serif", fontSize:22, fontWeight:900,
+              color:'#1C0A00', lineHeight:1.15, marginBottom:8,
+            }}>
+              {meal.name}
+            </div>
+            <div style={{ display:'flex', gap:7 }}>
+              {meal.time && (
+                <span style={{
+                  fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20,
+                  color: isQuick ? '#1D9E75' : '#FF4500',
+                  background: isQuick ? 'rgba(29,158,117,0.09)' : 'rgba(255,69,0,0.08)',
+                  border:'1px solid ' + (isQuick ? 'rgba(29,158,117,0.22)' : 'rgba(255,69,0,0.2)'),
+                }}>
+                  {'⏱ '}{meal.time}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Why line — real */}
+        {meal.description && (
+          <div style={{ borderTop:'1px solid rgba(255,69,0,0.1)', paddingTop:12, marginBottom:14 }}>
+            <div style={{ fontSize:12, fontWeight:600, color:'#1C0A00', lineHeight:1.5 }}>
+              {'✔ '}{meal.description}
+            </div>
+          </div>
+        )}
+
+        {/* CTA — disabled shimmer, signals recipe is assembling */}
+        <div style={{
+          height:46, borderRadius:13,
+          background:'rgba(255,69,0,0.18)',
+          animation:'jiffSkel 1.4s ease infinite',
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}>
+          <span style={{ fontSize:12, color:'rgba(255,69,0,0.5)', fontFamily:F_S }}>
+            {'Finishing your recipe…'}
+          </span>
+        </div>
+
+        {/* Ingredient skeleton — signals detail is loading */}
+        <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid rgba(28,10,0,0.06)' }}>
+          <div style={{ fontSize:10, fontWeight:600, color:'#B5A49A', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>
+            {'Ingredients'}
+          </div>
+          {[100, 70, 85, 60].map((w, i) => (
+            <div key={i} style={{
+              height:10, borderRadius:5, marginBottom:7,
+              width: w + '%',
+              background:'rgba(28,10,0,0.05)',
+              animation:'jiffSkel 1.4s ease infinite',
+              animationDelay: (i * 0.12) + 's',
+            }}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── InlineSkeleton — self-progressing, never static ──────────────
 const SKEL_PHRASES = {
   mood:     ['Reading the vibe…',            'Narrowing it down…',         'Almost there…',             'Found it.'],
@@ -346,6 +432,7 @@ export function JourneyTiles({
   onSelectFridge, onGenerateDirect,
   user,
   isLoadingRecommendation = false,
+  provisionalMeal = null,
   loadingSource = 'default',
   loadingMessage = '',
   navJourneyCtx = null,
@@ -416,6 +503,7 @@ export function JourneyTiles({
     if (primary && !shownRef.current) {
       shownRef.current = true;
       trackPrimaryShown({ mealId: primary.meal?.id || primary.label, mealName: primary.label, cuisine: primary.cuisine, score: primary.score });
+      recordPrimaryShown(); // for implicit swap velocity timing
     }
   }, [cards]);
 
@@ -556,7 +644,11 @@ export function JourneyTiles({
       {/* TIER 1: Primary recommendation */}
       {/* Inline loading — progressing skeleton, never static */}
       {isLoadingRecommendation ? (
-        <InlineSkeleton source={loadingSource} />
+        provisionalMeal ? (
+          <ProvisionalCard meal={provisionalMeal} />
+        ) : (
+          <InlineSkeleton source={loadingSource} />
+        )
       ) : primary ? (
         <PrimaryCard
           animKey={animKey}

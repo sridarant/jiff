@@ -28,6 +28,27 @@ const SCORE_DELTA = {
   rejected:  -0.50,
 };
 
+
+// ── Implicit behavioral signals (invisible to user) ───────────────
+// These capture PATTERNS, not individual events.
+// All signals decay over time — see DECAY_HALF_LIFE.
+// Storage is localStorage only; syncs to Supabase on session end.
+const IMPLICIT_KEY      = 'jiff-implicit-v1';  // {swapVelocity, exploreRate, timeOfDay, weekday, noveltyAppetite, effortFatigue}
+const DECAY_HALF_LIFE   = 14;                  // days: signal weight halves every 14 days
+const MAX_IMPLICIT_OBS  = 50;                  // cap observations to keep localStorage small
+
+function decayedScore(value, daysSince) {
+  // Exponential decay: value × (0.5)^(daysSince / DECAY_HALF_LIFE)
+  return value * Math.pow(0.5, daysSince / DECAY_HALF_LIFE);
+}
+
+function loadImplicit() {
+  try { return JSON.parse(localStorage.getItem(IMPLICIT_KEY) || '{}'); } catch { return {}; }
+}
+function saveImplicit(d) {
+  try { localStorage.setItem(IMPLICIT_KEY, JSON.stringify(d)); } catch {}
+}
+
 const REJECTED_TTL_DAYS = 14;
 
 // ── Weight store ──────────────────────────────────────────────────
@@ -140,6 +161,54 @@ export function logFeedback({ meal, action, userId = null, position = null }) {
   };
   saveWeights(weights);
 
+  // 1b. Implicit signals — pattern-level, decayed
+  (function captureImplicit() {
+    try {
+      const impl = loadImplicit();
+      const now  = Date.now();
+      const h    = new Date().getHours();
+      const dow  = new Date().getDay(); // 0=Sun
+
+      // Swap velocity: note time since last primary shown (approximated by session)
+      if (action === 'swapped') {
+        const lastShown = impl.lastPrimaryShownTs || now;
+        const secsSince = (now - lastShown) / 1000;
+        // Fast swap (<5s) = immediate rejection. Slow swap (>30s) = considered.
+        const velocityScore = secsSince < 5 ? -0.8 : secsSince < 15 ? -0.3 : -0.05;
+        impl.swapVelocity = impl.swapVelocity || [];
+        impl.swapVelocity = [{ v: velocityScore, ts: now }, ...impl.swapVelocity].slice(0, MAX_IMPLICIT_OBS);
+      }
+
+      // Record when primary shown (for swap velocity calc)
+      if (action === 'accepted' || action === 'swapped' || action === 'rejected') {
+        impl.lastPrimaryShownTs = now;
+      }
+
+      // Explore rate: accepted=0, swapped=0.5, rejected=1
+      const exploreSignal = action === 'accepted' ? 0 : action === 'swapped' ? 0.5 : 1;
+      impl.exploreObs = impl.exploreObs || [];
+      impl.exploreObs = [{ v: exploreSignal, ts: now }, ...impl.exploreObs].slice(0, MAX_IMPLICIT_OBS);
+
+      // Time-of-day buckets: breakfast(0), lunch(1), dinner(2)
+      const tod = h < 11 ? 0 : h < 16 ? 1 : 2;
+      impl.todObs = impl.todObs || [];
+      impl.todObs = [{ tod, ts: now }, ...impl.todObs].slice(0, MAX_IMPLICIT_OBS);
+
+      // Weekday vs weekend signal
+      const isWeekend = dow === 0 || dow === 6;
+      impl.weekendObs = impl.weekendObs || [];
+      impl.weekendObs = [{ wk: isWeekend ? 1 : 0, ts: now }, ...impl.weekendObs].slice(0, MAX_IMPLICIT_OBS);
+
+      // Effort signal on accept: quick accept → efficiency preference
+      if ((action === 'accepted' || action === 'completed') && meal.effortMins) {
+        impl.effortObs = impl.effortObs || [];
+        impl.effortObs = [{ m: meal.effortMins, ts: now }, ...impl.effortObs].slice(0, MAX_IMPLICIT_OBS);
+      }
+
+      saveImplicit(impl);
+    } catch {} // never throw — implicit capture is non-blocking
+  })();
+
   // 2. Rejected set + session streak
   if (action === 'rejected') {
     const rejected = loadRejected();
@@ -212,6 +281,78 @@ export async function fetchRecommendationLog(userId, { limit = 100 } = {}) {
     const data = await res.json();
     return Array.isArray(data?.log) ? data.log : [];
   } catch { return []; }
+}
+
+
+
+// ── Step 4+8: Implicit behaviour profile — multi-horizon memory ───
+// Returns a lightweight profile object for the scoring engine.
+// All values are [0,1] ranges or booleans. Decayed.
+export function getImplicitBehaviourProfile() {
+  try {
+    const impl = loadImplicit();
+    const now  = Date.now();
+    const DAY  = 86400000;
+
+    // Helper: compute decayed mean of observations
+    function decayedMean(obs, valueFn) {
+      if (!obs || obs.length === 0) return null;
+      let sumW = 0, sumV = 0;
+      obs.forEach(o => {
+        const daysAgo = (now - o.ts) / DAY;
+        if (daysAgo > 60) return; // discard stale beyond 60 days
+        const w = Math.pow(0.5, daysAgo / DECAY_HALF_LIFE);
+        sumW += w;
+        sumV += valueFn(o) * w;
+      });
+      return sumW < 0.01 ? null : sumV / sumW;
+    }
+
+    // 1. Novelty appetite: 0=decisive (accepts first), 1=explorer (always swaps)
+    const noveltyAppetite = decayedMean(impl.exploreObs, o => o.v);
+
+    // 2. Effort tolerance: mean accepted effort in minutes (decayed)
+    const meanEffort = decayedMean(impl.effortObs, o => o.m);
+    const effortTolerance = meanEffort === null ? 'any'
+      : meanEffort <= 18 ? 'quick'
+      : meanEffort <= 32 ? 'moderate'
+      : 'involved';
+
+    // 3. Time-of-day preference: most common tod bucket (decayed frequency)
+    const todCounts = [0, 0, 0];
+    (impl.todObs || []).forEach(o => {
+      const daysAgo = (now - o.ts) / DAY;
+      if (daysAgo > 30) return;
+      const w = Math.pow(0.5, daysAgo / DECAY_HALF_LIFE);
+      todCounts[o.tod] = (todCounts[o.tod] || 0) + w;
+    });
+    const preferredTod = todCounts[0] === 0 && todCounts[1] === 0 && todCounts[2] === 0
+      ? null : todCounts.indexOf(Math.max(...todCounts));
+
+    // 4. Weekend preference (decayed)
+    const weekendMean = decayedMean(impl.weekendObs, o => o.wk);
+
+    // 5. Swap velocity: decayed mean (negative = fast swapper = low recommendation trust)
+    const swapVelocityMean = decayedMean(impl.swapVelocity, o => o.v);
+
+    return {
+      noveltyAppetite,    // 0=decisive 1=explorer | null=unknown
+      effortTolerance,    // 'quick'|'moderate'|'involved'|'any'
+      preferredTod,       // 0=morning 1=lunch 2=dinner | null=unknown
+      weekendUser: weekendMean === null ? null : weekendMean > 0.6,
+      swapVelocityMean,   // negative = impatient swapper
+      hasEnoughData: (impl.exploreObs || []).length >= 5,
+    };
+  } catch { return { noveltyAppetite:null, effortTolerance:'any', preferredTod:null, weekendUser:null, swapVelocityMean:null, hasEnoughData:false }; }
+}
+
+// Record when primary card is shown (for swap velocity calculation)
+export function recordPrimaryShown() {
+  try {
+    const impl = loadImplicit();
+    impl.lastPrimaryShownTs = Date.now();
+    saveImplicit(impl);
+  } catch {}
 }
 
 export async function syncBehaviourToProfile(userId) {
