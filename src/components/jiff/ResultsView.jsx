@@ -182,7 +182,7 @@ export default function ResultsView({
   );
 
   return (
-    <div className="results-wrap" style={{ animation:'rvFadeIn 0.28s ease' }}>
+    <div className="results-wrap" style={{ animation:'rvFadeIn 0.28s ease', maxWidth:600, marginLeft:'auto', marginRight:'auto' }}>
       <style>{`@keyframes rvFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Pantry learning nudge */}

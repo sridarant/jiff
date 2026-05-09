@@ -28,6 +28,7 @@
 //   ✕ adaptMsg state (edge case that added render noise)
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getDaypart, COOK_CTA, DISMISS_CTA } from '../../lib/daypart.js';
 import { useNavigate } from 'react-router-dom';
 import MoodSelector  from './MoodSelector.jsx';
 import RetentionNudges from './RetentionNudges.jsx';
@@ -49,9 +50,9 @@ const C     = {
 
 // ── Helpers ───────────────────────────────────────────────────────
 function greet(profile) {
-  const h    = new Date().getHours();
+  const dp   = getDaypart();
   const name = profile && profile.name ? profile.name.split(' ')[0] : '';
-  const base = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const base = dp === 'morning' ? 'Good morning' : dp === 'afternoon' ? 'Good afternoon' : 'Good evening';
   return name ? base + ', ' + name : base;
 }
 
@@ -67,7 +68,9 @@ function framingText(mealHistory, weekCookCount, streak) {
     const last = new Date(mealHistory[0].generated_at || mealHistory[0].created_at || 0);
     return Math.floor((Date.now() - last.getTime()) / 86400000);
   })();
-  if (timeSinceLastCook !== null && timeSinceLastCook >= 3) return "Haven't cooked in a while — something quick tonight?";
+  const dp = getDaypart();
+  const period = dp === 'morning' ? 'this morning' : dp === 'afternoon' ? 'today' : 'this evening';
+  if (timeSinceLastCook !== null && timeSinceLastCook >= 3) return `Haven't cooked in a while — something quick ${period}?`;
   return 'Ready for ' + mealCtx + '?';
 }
 
@@ -157,7 +160,7 @@ function PrimaryCard({ emoji, label, effortMins, why, onCook, onNotThis, animKey
           }}
           onMouseEnter={e => { e.currentTarget.style.background = C.dark; }}
           onMouseLeave={e => { e.currentTarget.style.background = C.jiff; }}>
-          {'Cook this tonight →'}
+          {COOK_CTA[getDaypart()]}
         </button>
 
         {/* "Not this" — visually receded secondary action */}
@@ -167,7 +170,7 @@ function PrimaryCard({ emoji, label, effortMins, why, onCook, onNotThis, animKey
             fontSize:11, color:C.soft, fontFamily:F,
             touchAction:'manipulation', padding:'4px 8px',
           }}>
-            {'Not tonight — show something else'}
+            {DISMISS_CTA[getDaypart()] + ' — show something else'}
           </button>
         </div>
       </div>

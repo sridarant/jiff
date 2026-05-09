@@ -22,6 +22,7 @@
 // Repetition control: same meal blocked 3 sessions; same cuisine capped 2 consecutive
 
 import { parseFoodTypeIds } from '../lib/dietary.js';
+import { getDaypart, MEAL_PERIOD } from '../lib/daypart.js';
 import { getActiveEvent, getEventBoost, getMealContextLabel } from '../lib/eventIntelligence.js';
 import { getRecentSuccessBoostMap }       from '../hooks/useRetention.js';
 import { getImplicitBehaviourProfile, recordPrimaryShown } from '../services/feedbackService.js';
@@ -581,7 +582,7 @@ function buildWhyParts(item) {
     _journeyType,
   } = item;
 
-  const period = ({ breakfast:'this morning', lunch:'for lunch', snack:'right now', dinner:'tonight' })[_targetMealType] || 'today';
+  const period = MEAL_PERIOD[getDaypart()] || 'today'; // always uses actual device time
 
   // ── Line 1: the reason ──────────────────────────────────────────
   let line1 = '';
@@ -618,13 +619,17 @@ function buildWhyParts(item) {
   } else if (_goal === 'try_new_things' && !(_allCuisines || []).includes(normC(meal.cuisine)) && meal.cuisine !== 'any') {
     line1 = 'Something a little different';
   } else if (meal.tags.includes('popular')) {
-    line1 = 'A favourite across India';
+    line1 = 'Widely loved, for good reason';
   } else if (meal.tags.includes('comfort')) {
-    line1 = 'A reliable comfort dish';
+    line1 = 'Tried, tested, and genuinely good';
   } else if (meal.tags.includes('healthy')) {
     line1 = 'A wholesome choice';
   } else {
-    line1 = 'Looks good for today';
+    const dp = getDaypart();
+    line1 = dp === 'morning'   ? 'A solid start to the day'
+           : dp === 'afternoon' ? 'Balanced for the afternoon'
+           : dp === 'evening'   ? 'A relaxed evening meal'
+           : 'Comforting end-of-day option';
   }
 
   // ── Line 2: the context ─────────────────────────────────────────
@@ -633,17 +638,18 @@ function buildWhyParts(item) {
   if (_timePressure && meal.effortMins <= 15) {
     line2 = meal.effortMins + ' min — ready fast';
   } else if (_effortBias === 'quick' && meal.effortMins <= 15) {
+    if (!line1) line1 = 'Low effort, easy to settle into';
     line2 = 'Quick for ' + period;
   } else if (_targetMealType === 'breakfast' && meal.effortMins <= 15) {
-    line2 = 'Light and quick this morning';
+    line2 = `Light and quick ${MEAL_PERIOD[getDaypart()]}`;
   } else if (_targetMealType === 'dinner' && meal.effortMins <= 20) {
-    line2 = 'Easy to make tonight';
+    line2 = `Easy to make ${MEAL_PERIOD[getDaypart()]}`;
   } else if (_targetMealType === 'snack') {
     line2 = 'Ready in ' + meal.effortMins + ' min';
   } else if (_learnedEffortPref === 'quick' && meal.effortMins <= 15) {
     line2 = 'Matches how you like to cook';
   } else if (isWeekend() && meal.effortMins >= 30) {
-    line2 = 'Worth the effort this weekend';
+    line2 = `Worth the effort ${MEAL_PERIOD[getDaypart()]}`;
   } else {
     line2 = meal.effortMins + ' min — good fit ' + period;
   }

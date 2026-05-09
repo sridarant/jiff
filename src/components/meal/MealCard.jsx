@@ -10,6 +10,7 @@
 //   + Removed: hardcoded "🔥" emoji in CTA (let label carry the energy)
 
 import { useState, useRef, memo } from 'react';
+import { getDaypart, COOK_CTA, DISMISS_CTA, getFramingLine } from '../../lib/daypart.js';
 import { useLocale }       from '../../contexts/LocaleContext.jsx';
 import { scaleIngredient } from '../../lib/scaling.js';
 import { buildShareText }  from '../../lib/sharing.js';
@@ -27,9 +28,9 @@ const C = {
 // Returns { cook, notThis } based on local hour.
 // One place to change copy — no scattered time checks.
 function getTimeCtx() {
-  const h = new Date().getHours();
-  if (h >= 5  && h < 12) return { cook: 'Cook this for breakfast',   notThis: 'Not this morning'       };
-  if (h >= 12 && h < 15) return { cook: 'Cook this for lunch',       notThis: 'Try something else'     };
+  const dp = getDaypart();
+  return { cook: COOK_CTA[dp], notThis: DISMISS_CTA[dp] };
+};
   if (h >= 15 && h < 18) return { cook: 'Cook this today',           notThis: 'Try something else'     };
   if (h >= 18 && h < 23) return { cook: 'Cook this tonight →',       notThis: 'Not tonight'            };
   return                         { cook: 'Make this tonight →',       notThis: 'Try something lighter'  };
@@ -72,16 +73,12 @@ function reassuranceLine(ingredients) {
 // Replaces cold "Matches your taste" with contextual food energy.
 function emotionalFrame(description, time, steps) {
   if (!description) return null;
-  const h = new Date().getHours();
   // If the description already sounds emotional, use it directly
   const cold = /classic|traditional|popular|common|dish|recipe|option/i.test(description);
   if (!cold) return description;
-  // Re-frame cold descriptions with time-of-day energy
+  // Re-frame cold descriptions with time-of-day energy using centralized daypart
   const effort = effortLabel(steps, time);
-  if (h < 12) return effort === 'Very quick' ? 'A quick, energising start to the day' : 'Warming and filling this morning';
-  if (h < 16) return effort === 'Very quick' ? 'Light and easy for the afternoon' : 'Satisfying midday meal';
-  if (h < 20) return effort === 'Very quick' ? 'Quick and easy tonight'            : 'Comforting and easy this evening';
-  return 'Warm and filling, just right for now';
+  return getFramingLine(effort);
 }
 
 // ── Heart icon ────────────────────────────────────────────────────
