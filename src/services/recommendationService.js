@@ -692,6 +692,15 @@ function buildWhyParts(item) {
   // ── Line 1: the reason ──────────────────────────────────────────
   let line1 = '';
 
+  // ── Confidence tier — shapes framing tone, never exposed ─────────
+  // high:   score ≥ 0.70 → assertive editorial ("A reliable pick")
+  // mid:    score 0.50–0.69 → balanced ("Feels right for today")
+  // explore: score < 0.50 or high novelty distance → curious ("Worth trying")
+  const _score = typeof item.score === 'number' ? item.score : 0.60;
+  const _confTier = _score >= 0.70 ? 'high'
+                  : _score >= 0.50 ? 'mid'
+                  : 'explore';
+
   // Journey-type overrides come first — most specific signal
   if (_journeyType === 'kids') {
     line1 = 'Easy, mild, and kid-friendly';
@@ -706,13 +715,13 @@ function buildWhyParts(item) {
   } else if (_journeyType === 'religious' || _journeyType === 'festival') {
     line1 = 'Traditional and fitting for today';
   } else if (_learnedW >= 0.4) {
-    line1 = "Works well for you";
+    line1 = _confTier === 'high' ? 'Right in your wheelhouse' : 'Works well for you';
   } else if (_historyWhyKey === 'liked_cuisine' && meal.cuisine !== 'any') {
-    line1 = "You've liked similar meals";
+    line1 = _confTier === 'high' ? "Fits your cooking pattern" : "You've liked similar meals";
   } else if (_prefIdx === 0 && meal.cuisine !== 'any') {
-    line1 = capCuisine(meal.cuisine) + ' is your go-to — great pick';
+    line1 = _confTier === 'high' ? capCuisine(meal.cuisine) + ' — a natural fit' : capCuisine(meal.cuisine) + ' suits you well';
   } else if (_prefIdx === 1 && meal.cuisine !== 'any') {
-    line1 = 'This fits your taste';
+    line1 = _confTier === 'high' ? 'Fits your taste well' : 'Feels like a good fit';
   } else if (_learnedCuisines && _learnedCuisines.length > 0 && _learnedCuisines.map(normC).includes(normC(meal.cuisine)) && _prefIdx < 0) {
     line1 = "You've been enjoying " + capCuisine(meal.cuisine) + ' lately';
   } else if (_goal === 'eat_healthier' && (meal.tags.includes('healthy') || meal.tags.includes('light'))) {
@@ -722,7 +731,7 @@ function buildWhyParts(item) {
   } else if (_goal === 'reduce_waste' && meal.tags.includes('leftover')) {
     line1 = 'Great for using up what you have';
   } else if (_goal === 'try_new_things' && !(_allCuisines || []).includes(normC(meal.cuisine)) && meal.cuisine !== 'any') {
-    line1 = 'Something a little different';
+    line1 = _confTier === 'explore' ? 'A fresh switch-up' : 'Something a little different';
   }
 
   // Continuity framing — fires before generic fallback when no other signal matched
@@ -751,10 +760,23 @@ function buildWhyParts(item) {
     line1 = 'A wholesome choice';
   } else {
     const dp = getDaypart();
-    line1 = dp === 'morning'   ? 'A solid start to the day'
-           : dp === 'afternoon' ? 'Balanced for the afternoon'
-           : dp === 'evening'   ? 'A relaxed evening meal'
-           : 'Comforting end-of-day option';
+    // Confidence-calibrated fallback — same daypart awareness, varied assertiveness
+    if (_confTier === 'high') {
+      line1 = dp === 'morning'   ? 'A reliable start to the day'
+             : dp === 'afternoon' ? 'A dependable pick for the afternoon'
+             : dp === 'evening'   ? 'A confident choice this evening'
+             : 'A reliable pick for tonight';
+    } else if (_confTier === 'explore') {
+      line1 = dp === 'morning'   ? 'Worth trying this morning'
+             : dp === 'afternoon' ? 'A fresh direction for today'
+             : dp === 'evening'   ? 'Something a little different this evening'
+             : 'Worth exploring tonight';
+    } else {
+      line1 = dp === 'morning'   ? 'A solid start to the day'
+             : dp === 'afternoon' ? 'Balanced for the afternoon'
+             : dp === 'evening'   ? 'A relaxed evening meal'
+             : 'Comforting end-of-day option';
+    }
   }
 
   // ── Line 2: the context ─────────────────────────────────────────
